@@ -1,0 +1,22 @@
+[
+  {
+    "id": "project-1-task-1",
+    "title": "Design Homepage",
+    "description": "Create a modern and user-friendly homepage design",
+    "status": "TODO",
+    "projectId": "project-1",
+    "priority": "high",
+    "checklistItems": [
+      {
+        "id": "project-1-task-1-checklist-1",
+        "text": "Create wireframe",
+        "completed": true
+      },
+      {
+        "id": "project-1-task-1-checklist-2",
+        "text": "Design UI components",
+        "completed": false
+      }
+    ]
+  }
+]

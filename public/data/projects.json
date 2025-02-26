@@ -1,0 +1,12 @@
+[
+  {
+    "id": "project-1",
+    "name": "Website Redesign",
+    "description": "Modernize the company website with a fresh look",
+    "logo": "https://example.com/logo.png",
+    "isMain": true,
+    "viewed": false,
+    "createdAt": "2024-02-26T19:00:00.000Z",
+    "updatedAt": "2024-02-26T19:00:00.000Z"
+  }
+]

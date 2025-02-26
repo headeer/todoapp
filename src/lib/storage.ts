@@ -2,7 +2,13 @@ import { promises as fs } from "fs";
 import path from "path";
 import { Project, Task } from "@/app/projects/[id]/types";
 
-const DATA_DIR = path.join(process.cwd(), "data");
+// Use public directory in production, data directory in development
+const BASE_DIR =
+  process.env.NODE_ENV === "production"
+    ? path.join(process.cwd(), "public", "data")
+    : path.join(process.cwd(), "data");
+
+const DATA_DIR = BASE_DIR;
 const PROJECTS_FILE = path.join(DATA_DIR, "projects.json");
 const TASKS_FILE = path.join(DATA_DIR, "tasks.json");
 
@@ -18,8 +24,22 @@ async function initStorage() {
       env: process.env.NODE_ENV,
     });
     try {
-      await fs.mkdir(DATA_DIR);
+      // Create the full path recursively
+      await fs.mkdir(DATA_DIR, { recursive: true });
       console.log("Created DATA_DIR successfully");
+
+      // Initialize empty files if they don't exist
+      try {
+        await fs.access(PROJECTS_FILE);
+      } catch {
+        await fs.writeFile(PROJECTS_FILE, "[]");
+      }
+
+      try {
+        await fs.access(TASKS_FILE);
+      } catch {
+        await fs.writeFile(TASKS_FILE, "[]");
+      }
     } catch (mkdirError: unknown) {
       console.error("Error creating DATA_DIR:", {
         error: mkdirError,
