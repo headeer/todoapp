@@ -20,12 +20,17 @@ async function initStorage() {
     try {
       await fs.mkdir(DATA_DIR);
       console.log("Created DATA_DIR successfully");
-    } catch (mkdirError) {
+    } catch (mkdirError: unknown) {
       console.error("Error creating DATA_DIR:", {
         error: mkdirError,
         DATA_DIR,
       });
-      throw new Error(`Failed to create data directory: ${mkdirError.message}`);
+      if (mkdirError instanceof Error) {
+        throw new Error(
+          `Failed to create data directory: ${mkdirError.message}`
+        );
+      }
+      throw new Error("Failed to create data directory");
     }
   }
 }
@@ -117,7 +122,7 @@ export async function saveTask(task: Task): Promise<Task> {
 
     await fs.writeFile(TASKS_FILE, JSON.stringify(tasks, null, 2));
     return task;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error saving task:", {
       error,
       task,
@@ -127,7 +132,10 @@ export async function saveTask(task: Task): Promise<Task> {
         .then(() => true)
         .catch(() => false),
     });
-    throw new Error(`Failed to save task: ${error.message}`);
+    if (error instanceof Error) {
+      throw new Error(`Failed to save task: ${error.message}`);
+    }
+    throw new Error("Failed to save task");
   }
 }
 
