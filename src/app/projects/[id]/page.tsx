@@ -379,12 +379,12 @@ export default function ProjectDetail() {
 
     if (targetStatus && activeTask.status !== targetStatus) {
       // Optimistically update the UI
-      const updatedTasks = tasks.map((task) =>
+    const updatedTasks = tasks.map((task) =>
         task.id === activeId
           ? { ...task, status: targetStatus as TaskStatus }
           : task
-      );
-      setTasks(updatedTasks);
+    );
+    setTasks(updatedTasks);
 
       // Update the task in the database
       try {
@@ -533,8 +533,8 @@ export default function ProjectDetail() {
             </div>
           )}
           <h1 className="text-3xl font-bold text-emerald-400">
-            {project.name}
-          </h1>
+          {project.name}
+        </h1>
         </div>
       </div>
 
@@ -577,7 +577,7 @@ export default function ProjectDetail() {
                 status="TODO"
                 onTaskClick={openTaskDetail}
               />
-            </div>
+                          </div>
 
             <div>
               <TaskColumn
@@ -586,7 +586,7 @@ export default function ProjectDetail() {
                 status="IN_PROGRESS"
                 onTaskClick={openTaskDetail}
               />
-            </div>
+          </div>
 
             <div>
               <TaskColumn
@@ -595,15 +595,15 @@ export default function ProjectDetail() {
                 status="DONE"
                 onTaskClick={openTaskDetail}
               />
-            </div>
-          </div>
+                          </div>
+                        </div>
           <DragOverlay>
             {activeTask ? (
               <div className="bg-gray-900/90 backdrop-blur-sm border border-emerald-500/50 rounded-lg p-4 shadow-lg w-[calc(100%-1rem)]">
                 <div className="flex justify-between items-start mb-3">
                   <h4 className="font-bold text-emerald-400 text-lg">
                     {activeTask.title}
-                  </h4>
+                          </h4>
                   <div className="flex items-center space-x-2">
                     <StatusIcon status={activeTask.status} size="sm" />
                     <span
@@ -612,12 +612,12 @@ export default function ProjectDetail() {
                       {activeTask.priority.charAt(0).toUpperCase() +
                         activeTask.priority.slice(1)}
                     </span>
-                  </div>
-                </div>
+                          </div>
+                        </div>
                 <p className="text-gray-400 text-sm line-clamp-2">
                   {activeTask.description}
                 </p>
-              </div>
+                </div>
             ) : null}
           </DragOverlay>
         </DndContext>
@@ -643,8 +643,8 @@ export default function ProjectDetail() {
               <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-2xl font-bold text-black">
-                    Create New Task
-                  </h2>
+                  Create New Task
+                </h2>
                   <button
                     onClick={() => setIsTaskModalOpen(false)}
                     className="text-gray-500 hover:text-gray-700"
@@ -778,20 +778,20 @@ export default function ProjectDetail() {
                   ))}
                 </div>
                 <div className="border-t border-gray-300 pt-4">
-                  <div className="flex justify-end space-x-3">
-                    <button
+                <div className="flex justify-end space-x-3">
+                  <button
                       className="px-4 py-2 rounded-lg text-black border border-gray-300 hover:bg-gray-100 transition-colors font-medium"
-                      onClick={() => setIsTaskModalOpen(false)}
-                    >
-                      Cancel
-                    </button>
-                    <button
+                    onClick={() => setIsTaskModalOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
                       className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
-                      onClick={handleCreateTask}
-                      disabled={!newTask.title}
-                    >
-                      Create Task
-                    </button>
+                    onClick={handleCreateTask}
+                    disabled={!newTask.title}
+                  >
+                    Create Task
+                  </button>
                   </div>
                 </div>
               </div>
@@ -840,18 +840,18 @@ export default function ProjectDetail() {
               <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-2xl font-bold text-black">
-                    <input
-                      type="text"
+                  <input
+                    type="text"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-black"
-                      value={selectedTask.title}
-                      onChange={(e) =>
-                        setSelectedTask({
-                          ...selectedTask,
-                          title: e.target.value,
-                        })
-                      }
-                    />
-                  </h2>
+                    value={selectedTask.title}
+                    onChange={(e) =>
+                      setSelectedTask({
+                        ...selectedTask,
+                        title: e.target.value,
+                      })
+                    }
+                  />
+                </h2>
                   <button
                     onClick={() => {
                       // Check if task has been edited
@@ -1021,14 +1021,14 @@ export default function ProjectDetail() {
                           </svg>
                         </div>
                       </label>
-                      <input
-                        type="text"
+                        <input
+                          type="text"
                         className={`flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 mr-2 ${
                           item.completed
                             ? "line-through text-gray-500"
                             : "text-black"
                         }`}
-                        value={item.text}
+                          value={item.text}
                         onChange={(e) =>
                           handleChecklistItemChange(
                             selectedTask.id,
@@ -1036,51 +1036,51 @@ export default function ProjectDetail() {
                             e.target.value
                           )
                         }
-                      />
-                      <button
+                        />
+                        <button
                         onClick={(e) => {
                           e.stopPropagation();
                           const updatedItems =
                             selectedTask.checklistItems.filter(
                               (_, i) => i !== index
                             );
-                          setSelectedTask({
-                            ...selectedTask,
+                            setSelectedTask({
+                              ...selectedTask,
                             checklistItems: updatedItems,
-                          });
-                        }}
+                            });
+                          }}
                         className="text-red-500 hover:text-red-700 p-2"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
                         >
-                          <path
-                            fillRule="evenodd"
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
                             d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </button>
-                    </div>
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </button>
+                      </div>
                   ))}
                 </div>
                 <div className="border-t border-gray-300 pt-4 mt-6">
-                  <div className="flex justify-end space-x-3">
-                    <button
+                <div className="flex justify-end space-x-3">
+                  <button
                       className="px-4 py-2 rounded-lg text-gray-700 border border-gray-300 hover:bg-gray-100 transition-colors font-medium"
-                      onClick={() => setIsTaskDetailModalOpen(false)}
-                    >
-                      Cancel
-                    </button>
+                    onClick={() => setIsTaskDetailModalOpen(false)}
+                  >
+                    Cancel
+                  </button>
                     <button
                       className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
                       onClick={handleSaveTask}
                     >
-                      Save Changes
-                    </button>
+                    Save Changes
+                  </button>
                   </div>
                 </div>
               </div>
