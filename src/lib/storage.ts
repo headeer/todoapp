@@ -4,7 +4,93 @@ import {
   TaskStatus,
   TaskPriority,
 } from "@/app/projects/[id]/types";
-import { prisma } from "./prisma";
+import prisma from "./prisma";
+import {
+  Prisma,
+  TaskStatus as PrismaTaskStatus,
+  TaskPriority as PrismaTaskPriority,
+} from "@prisma/client";
+
+type PrismaTask = Prisma.TaskGetPayload<{ include: { checklistItems: true } }>;
+type PrismaChecklistItem = Prisma.ChecklistItemGetPayload<{}>;
+
+// Helper function to convert Prisma Task to our Task type
+function convertPrismaTask(prismaTask: PrismaTask): Task {
+  return {
+    id: prismaTask.id,
+    title: prismaTask.title,
+    description: prismaTask.description || "",
+    status: prismaTask.status as TaskStatus,
+    priority: prismaTask.priority.toLowerCase() as TaskPriority,
+    projectId: prismaTask.projectId,
+    checklistItems: prismaTask.checklistItems.map(
+      (item: PrismaChecklistItem) => ({
+        id: item.id,
+        text: item.title,
+        completed: item.completed,
+        taskId: item.taskId,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+      })
+    ),
+    createdAt: prismaTask.createdAt,
+    updatedAt: prismaTask.updatedAt,
+  };
+}
+
+// Helper function to convert our Task type to Prisma create format
+function convertToPrismaCreateTask(
+  task: Partial<Task>
+): Prisma.TaskCreateInput {
+  if (!task.title || !task.description || !task.projectId) {
+    throw new Error("Missing required fields for task creation");
+  }
+
+  return {
+    title: task.title,
+    description: task.description,
+    status: "TODO",
+    priority: "MEDIUM",
+    project: {
+      connect: { id: task.projectId },
+    },
+    checklistItems: task.checklistItems
+      ? {
+          create: task.checklistItems.map((item) => ({
+            title: item.text || "",
+            completed: item.completed || false,
+          })),
+        }
+      : undefined,
+  };
+}
+
+// Helper function to convert our Task type to Prisma update format
+function convertToPrismaUpdateTask(
+  task: Partial<Task>
+): Prisma.TaskUpdateInput {
+  const data: Prisma.TaskUpdateInput = {};
+
+  if (task.title) data.title = task.title;
+  if (task.description) data.description = task.description;
+  if (task.status) data.status = task.status;
+  if (task.priority) data.priority = task.priority.toUpperCase();
+  if (task.projectId) {
+    data.project = { connect: { id: task.projectId } };
+  }
+
+  if (task.checklistItems) {
+    data.checklistItems = {
+      deleteMany: {},
+      create: task.checklistItems.map((item) => ({
+        title: item.text || "",
+        completed: item.completed || false,
+      })),
+    };
+  }
+
+  return data;
+}
 
 // Initialize with default data if empty
 const defaultProject = {
@@ -101,103 +187,49 @@ export async function deleteProject(id: string): Promise<boolean> {
 
 // Tasks
 export async function getTasks(): Promise<Task[]> {
-  await initStorage();
   const tasks = await prisma.task.findMany({
-    include: {
-      checklistItems: true,
-    },
+    include: { checklistItems: true },
   });
-  return tasks.map((task) => ({
-    ...task,
-    description: task.description || "",
-    checklistItems: task.checklistItems.map((item) => ({
-      ...item,
-      text: item.title,
-    })),
-  }));
+  return tasks.map(convertPrismaTask);
 }
 
 export async function getTask(id: string): Promise<Task | null> {
-  await initStorage();
   const task = await prisma.task.findUnique({
     where: { id },
-    include: {
-      checklistItems: true,
-    },
+    include: { checklistItems: true },
   });
-  if (!task) return null;
-  return {
-    ...task,
-    description: task.description || "",
-    checklistItems: task.checklistItems.map((item) => ({
-      ...item,
-      text: item.title,
-    })),
-  };
+  return task ? convertPrismaTask(task) : null;
 }
 
 export async function getProjectTasks(projectId: string): Promise<Task[]> {
-  await initStorage();
   const tasks = await prisma.task.findMany({
     where: { projectId },
-    include: {
-      checklistItems: true,
-    },
+    include: { checklistItems: true },
   });
-  return tasks.map((task) => ({
-    ...task,
-    description: task.description || "",
-    checklistItems: task.checklistItems.map((item) => ({
-      ...item,
-      text: item.title,
-    })),
-  }));
+  return tasks.map(convertPrismaTask);
 }
 
-export async function saveTask(task: Task): Promise<Task> {
-  await initStorage();
-  const { checklistItems, ...taskData } = task;
-
-  const saved = await prisma.task.upsert({
-    where: { id: task.id },
-    update: {
-      ...taskData,
-      checklistItems: {
-        deleteMany: {},
-        create: checklistItems.map((item) => ({
-          title: item.text,
-          completed: item.completed,
-        })),
-      },
-    },
-    create: {
-      ...taskData,
-      checklistItems: {
-        create: checklistItems.map((item) => ({
-          title: item.text,
-          completed: item.completed,
-        })),
-      },
-    },
-    include: {
-      checklistItems: true,
-    },
-  });
-
-  return {
-    ...saved,
-    description: saved.description || "",
-    checklistItems: saved.checklistItems.map((item) => ({
-      ...item,
-      text: item.title,
-    })),
-  };
+export async function saveTask(task: Partial<Task>): Promise<Task> {
+  if (task.id) {
+    // Update existing task
+    const updated = await prisma.task.update({
+      where: { id: task.id },
+      data: convertToPrismaUpdateTask(task),
+      include: { checklistItems: true },
+    });
+    return convertPrismaTask(updated);
+  } else {
+    // Create new task
+    const created = await prisma.task.create({
+      data: convertToPrismaCreateTask(task),
+      include: { checklistItems: true },
+    });
+    return convertPrismaTask(created);
+  }
 }
 
-export async function deleteTask(id: string): Promise<boolean> {
-  await initStorage();
+export async function deleteTask(id: string): Promise<void> {
   await prisma.task.delete({
     where: { id },
   });
-  return true;
 }
