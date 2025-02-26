@@ -27,7 +27,19 @@ import { CSS } from "@dnd-kit/utilities";
 import ClientOnly from "@/components/ClientOnly";
 import StatusIcon from "@/components/StatusIcon";
 import Loader from "@/components/Loader";
-import { Task, Project, ChecklistItem } from "./types";
+import {
+  Task,
+  TaskStatus,
+  TaskPriority,
+  ChecklistItem,
+  Project,
+  TaskData,
+  validateTaskStatus,
+  validateTaskPriority,
+  mapTaskDataToTask,
+  createNewTask,
+  createNewChecklistItem,
+} from "./types";
 
 // Generate unique IDs using a counter to ensure consistency
 let idCounter = 0;
@@ -190,21 +202,12 @@ function TaskColumn({
 export default function ProjectDetail() {
   const params = useParams();
   const projectId = params.id as string;
-
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isTaskDetailModalOpen, setIsTaskDetailModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [newTask, setNewTask] = useState<Task>({
-    id: "",
-    title: "",
-    description: "",
-    status: "TODO",
-    projectId,
-    priority: "medium",
-    checklistItems: [],
-  });
+  const [newTask, setNewTask] = useState<Task>(() => createNewTask(projectId));
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -231,13 +234,21 @@ export default function ProjectDetail() {
         setProject(projectData);
 
         // Load tasks
-        const tasksResponse = await fetch("/api/tasks");
-        if (!tasksResponse.ok) throw new Error("Failed to fetch tasks");
-        const tasksData = await tasksResponse.json();
-        const projectTasks = tasksData.filter(
-          (t: Task) => t.projectId === projectId
-        );
-        setTasks(projectTasks);
+        const fetchTasks = async () => {
+          try {
+            const response = await fetch(`/api/tasks?projectId=${projectId}`);
+            if (!response.ok) {
+              throw new Error("Failed to fetch tasks");
+            }
+            const data: TaskData[] = await response.json();
+            const mappedTasks = data.map(mapTaskDataToTask);
+            setTasks(mappedTasks);
+          } catch (error) {
+            console.error("Error fetching tasks:", error);
+          }
+        };
+
+        await fetchTasks();
       } catch (error) {
         console.error("Error loading data:", error);
       } finally {
@@ -250,75 +261,91 @@ export default function ProjectDetail() {
     }
   }, [projectId]);
 
-  const handleAddChecklistItem = () => {
-    if (!selectedTask) return;
-    const newChecklistItem: ChecklistItem = {
-      id: Math.random().toString(36).substr(2, 9),
-      text: "",
-      completed: false,
-    };
-    setSelectedTask({
-      ...selectedTask,
-      checklistItems: [...selectedTask.checklistItems, newChecklistItem],
+  const createTask = async (task: Task) => {
+    const response = await fetch("/api/tasks", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(task),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to create task");
+    }
+    return response.json();
+  };
+
+  const handleAddNewChecklistItem = () => {
+    const newItem = createNewChecklistItem(newTask.id);
+    setNewTask({
+      ...newTask,
+      checklistItems: [...newTask.checklistItems, newItem],
     });
   };
 
-  const handleRemoveChecklistItem = (index: number) => {
-    setNewTask({
-      ...newTask,
-      checklistItems: newTask.checklistItems.filter((_, i) => i !== index),
-    });
-  };
+  const handleChecklistItemChange = (
+    taskId: string,
+    itemId: string,
+    text: string
+  ) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
 
-  const handleChecklistItemChange = (index: number, value: string) => {
-    const updatedItems = [...newTask.checklistItems];
-    updatedItems[index] = { ...updatedItems[index], text: value };
-    setNewTask({
-      ...newTask,
+    const updatedItems = task.checklistItems.map((item) =>
+      item.id === itemId
+        ? {
+            ...item,
+            text,
+            title: text,
+            updatedAt: new Date(),
+          }
+        : item
+    );
+
+    const updatedTask: Task = {
+      ...task,
       checklistItems: updatedItems,
-    });
-  };
-
-  const handleCreateTask = async () => {
-    const task = {
-      id: generateId("task", projectId),
-      title: newTask.title,
-      description: newTask.description,
-      status: newTask.status,
-      projectId,
-      checklistItems: newTask.checklistItems
-        .filter((item) => item.text.trim() !== "")
-        .map((item) => ({
-          id: generateId("checklist", projectId),
-          text: item.text,
-          completed: item.completed,
-        })),
-      priority: newTask.priority,
+      updatedAt: new Date(),
     };
 
+    setTasks((prevTasks) =>
+      prevTasks.map((t) => (t.id === taskId ? updatedTask : t))
+    );
+  };
+
+  const handleStatusChange = (taskId: string, newStatus: TaskStatus) => {
+    const updatedTask = tasks.find((task) => task.id === taskId);
+    if (!updatedTask) return;
+
+    const task: Task = {
+      ...updatedTask,
+      status: newStatus,
+      updatedAt: new Date(),
+    };
+
+    setTasks((prevTasks) => prevTasks.map((t) => (t.id === taskId ? task : t)));
+  };
+
+  const handlePriorityChange = (taskId: string, newPriority: TaskPriority) => {
+    const updatedTask = tasks.find((task) => task.id === taskId);
+    if (!updatedTask) return;
+
+    const task: Task = {
+      ...updatedTask,
+      priority: newPriority,
+      updatedAt: new Date(),
+    };
+
+    setTasks((prevTasks) => prevTasks.map((t) => (t.id === taskId ? task : t)));
+  };
+
+  const handleCreateTask = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      const response = await fetch("/api/tasks", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(task),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to create task");
-      }
-
-      setTasks([...tasks, task]);
-      setNewTask({
-        id: "",
-        title: "",
-        description: "",
-        status: "TODO",
-        projectId,
-        priority: "medium",
-        checklistItems: [],
-      });
+      await createTask(newTask);
+      setTasks((prevTasks) => [...prevTasks, newTask]);
+      setNewTask(createNewTask(projectId));
       setIsTaskModalOpen(false);
     } catch (error) {
       console.error("Error creating task:", error);
@@ -347,13 +374,15 @@ export default function ProjectDetail() {
     const targetStatus = ["TODO", "IN_PROGRESS", "DONE"].includes(
       overId as string
     )
-      ? (overId as "TODO" | "IN_PROGRESS" | "DONE")
+      ? (overId as TaskStatus)
       : tasks.find((task) => task.id === overId)?.status;
 
     if (targetStatus && activeTask.status !== targetStatus) {
       // Optimistically update the UI
       const updatedTasks = tasks.map((task) =>
-        task.id === activeId ? { ...task, status: targetStatus } : task
+        task.id === activeId
+          ? { ...task, status: targetStatus as TaskStatus }
+          : task
       );
       setTasks(updatedTasks);
 
@@ -430,13 +459,43 @@ export default function ProjectDetail() {
     }
   };
 
+  const handleTaskStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (!selectedTask) return;
+    const newStatus = e.target.value;
+    if (!validateTaskStatus(newStatus)) return;
+    handleStatusChange(selectedTask.id, newStatus as TaskStatus);
+  };
+
+  const handleTaskPriorityChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    if (!selectedTask) return;
+    const newPriority = e.target.value;
+    if (!validateTaskPriority(newPriority)) return;
+    handlePriorityChange(selectedTask.id, newPriority as TaskPriority);
+  };
+
   if (!project || isLoading) {
     return <Loader message="Loading project details..." />;
   }
 
-  const todoTasks = tasks.filter((task) => task.status === "TODO");
-  const inProgressTasks = tasks.filter((task) => task.status === "IN_PROGRESS");
-  const doneTasks = tasks.filter((task) => task.status === "DONE");
+  const todoTasks = tasks.filter((task) => task.status === TaskStatus.TODO);
+  const inProgressTasks = tasks.filter(
+    (task) => task.status === TaskStatus.IN_PROGRESS
+  );
+  const doneTasks = tasks.filter((task) => task.status === TaskStatus.DONE);
+
+  const statusOptions = [
+    { value: TaskStatus.TODO, label: "To Do" },
+    { value: TaskStatus.IN_PROGRESS, label: "In Progress" },
+    { value: TaskStatus.DONE, label: "Done" },
+  ];
+
+  const priorityOptions = [
+    { value: TaskPriority.HIGH, label: "High" },
+    { value: TaskPriority.MEDIUM, label: "Medium" },
+    { value: TaskPriority.LOW, label: "Low" },
+  ];
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl relative z-10">
@@ -655,16 +714,13 @@ export default function ProjectDetail() {
                     onChange={(e) =>
                       setNewTask({
                         ...newTask,
-                        status: e.target.value as
-                          | "TODO"
-                          | "IN_PROGRESS"
-                          | "DONE",
+                        status: e.target.value as TaskStatus,
                       })
                     }
                   >
-                    <option value="TODO">To Do</option>
-                    <option value="IN_PROGRESS">In Progress</option>
-                    <option value="DONE">Done</option>
+                    <option value={TaskStatus.TODO}>To Do</option>
+                    <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
+                    <option value={TaskStatus.DONE}>Done</option>
                   </select>
                 </div>
                 <div className="mb-4">
@@ -681,13 +737,13 @@ export default function ProjectDetail() {
                     onChange={(e) =>
                       setNewTask({
                         ...newTask,
-                        priority: e.target.value as "low" | "medium" | "high",
+                        priority: e.target.value as TaskPriority,
                       })
                     }
                   >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
+                    <option value={TaskPriority.LOW}>Low</option>
+                    <option value={TaskPriority.MEDIUM}>Medium</option>
+                    <option value={TaskPriority.HIGH}>High</option>
                   </select>
                 </div>
                 <div className="mb-6">
@@ -697,44 +753,27 @@ export default function ProjectDetail() {
                     </label>
                     <button
                       type="button"
-                      onClick={handleAddChecklistItem}
+                      onClick={handleAddNewChecklistItem}
                       className="text-purple-700 hover:text-purple-900 text-sm font-bold"
                     >
                       + Add Item
                     </button>
                   </div>
-                  {newTask.checklistItems.map((item, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center mb-2 bg-gray-50 p-2 rounded-lg"
-                    >
+                  {newTask.checklistItems.map((item) => (
+                    <div key={item.id} className="flex items-center space-x-2">
                       <input
                         type="text"
-                        className="flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 mr-2 bg-white text-black"
-                        placeholder="Enter checklist item"
                         value={item.text}
                         onChange={(e) =>
-                          handleChecklistItemChange(index, e.target.value)
+                          handleChecklistItemChange(
+                            newTask.id,
+                            item.id,
+                            e.target.value
+                          )
                         }
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="Add checklist item"
                       />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveChecklistItem(index)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </button>
                     </div>
                   ))}
                 </div>
@@ -873,21 +912,13 @@ export default function ProjectDetail() {
                     Status
                   </label>
                   <select
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-black"
                     value={selectedTask.status}
-                    onChange={(e) =>
-                      setSelectedTask({
-                        ...selectedTask,
-                        status: e.target.value as
-                          | "TODO"
-                          | "IN_PROGRESS"
-                          | "DONE",
-                      })
-                    }
+                    onChange={handleTaskStatusChange}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
                   >
-                    <option value="TODO">To Do</option>
-                    <option value="IN_PROGRESS">In Progress</option>
-                    <option value="DONE">Done</option>
+                    <option value={TaskStatus.TODO}>To Do</option>
+                    <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
+                    <option value={TaskStatus.DONE}>Done</option>
                   </select>
                 </div>
                 <div className="mb-4">
@@ -895,18 +926,13 @@ export default function ProjectDetail() {
                     Priority
                   </label>
                   <select
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-black"
-                    value={selectedTask.priority || "medium"}
-                    onChange={(e) =>
-                      setSelectedTask({
-                        ...selectedTask,
-                        priority: e.target.value as "low" | "medium" | "high",
-                      })
-                    }
+                    value={selectedTask.priority}
+                    onChange={handleTaskPriorityChange}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
                   >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
+                    <option value={TaskPriority.HIGH}>High</option>
+                    <option value={TaskPriority.MEDIUM}>Medium</option>
+                    <option value={TaskPriority.LOW}>Low</option>
                   </select>
                 </div>
                 <div className="mb-6">
@@ -921,11 +947,7 @@ export default function ProjectDetail() {
                           ...selectedTask,
                           checklistItems: [
                             ...selectedTask.checklistItems,
-                            {
-                              id: Date.now().toString(),
-                              text: "",
-                              completed: false,
-                            },
+                            createNewChecklistItem(selectedTask.id),
                           ],
                         });
                       }}
@@ -977,8 +999,12 @@ export default function ProjectDetail() {
                         <input
                           type="checkbox"
                           checked={item.completed}
-                          onChange={() =>
-                            handleToggleChecklistItem(selectedTask.id, item.id)
+                          onChange={(e) =>
+                            handleChecklistItemChange(
+                              selectedTask.id,
+                              item.id,
+                              e.target.checked ? item.text : ""
+                            )
                           }
                         />
                         <div className="checkbox-icon">
@@ -1003,20 +1029,17 @@ export default function ProjectDetail() {
                             : "text-black"
                         }`}
                         value={item.text}
-                        onChange={(e) => {
-                          const updatedItems = [...selectedTask.checklistItems];
-                          updatedItems[index] = {
-                            ...item,
-                            text: e.target.value,
-                          };
-                          setSelectedTask({
-                            ...selectedTask,
-                            checklistItems: updatedItems,
-                          });
-                        }}
+                        onChange={(e) =>
+                          handleChecklistItemChange(
+                            selectedTask.id,
+                            item.id,
+                            e.target.value
+                          )
+                        }
                       />
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           const updatedItems =
                             selectedTask.checklistItems.filter(
                               (_, i) => i !== index

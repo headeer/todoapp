@@ -7,9 +7,7 @@ const nextConfig = {
         hostname: "**",
       },
     ],
-  },
-  experimental: {
-    serverActions: true,
+    domains: ["example.com"],
   },
 };
 
