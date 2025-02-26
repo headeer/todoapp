@@ -3,7 +3,7 @@
     "id": "project-1-task-1",
     "title": "Design Homepage",
     "description": "Create a modern and user-friendly homepage design",
-    "status": "IN_PROGRESS",
+    "status": "TODO",
     "projectId": "project-1",
     "priority": "low",
     "checklistItems": [
@@ -23,7 +23,7 @@
     "id": "project-1-task-2",
     "title": "Implement Contact Form",
     "description": "Add a contact form with validation",
-    "status": "DONE",
+    "status": "IN_PROGRESS",
     "projectId": "project-1",
     "priority": "medium",
     "checklistItems": [

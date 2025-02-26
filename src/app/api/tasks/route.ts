@@ -56,15 +56,34 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const task = await request.json();
+    console.log("Received task update request:", {
+      task,
+      method: request.method,
+      url: request.url,
+      headers: Object.fromEntries(request.headers.entries()),
+    });
+
     const updatedTask = await saveTask(task);
+    console.log("Task updated successfully:", updatedTask);
+
     return new NextResponse(JSON.stringify(updatedTask), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error updating task:", error);
+    console.error("Error updating task:", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      task: await request.json().catch(() => ({})),
+      method: request.method,
+      url: request.url,
+    });
+
     return new NextResponse(
-      JSON.stringify({ error: "Failed to update task" }),
+      JSON.stringify({
+        error: "Failed to update task",
+        details: error instanceof Error ? error.message : String(error),
+      }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }

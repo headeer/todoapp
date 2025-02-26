@@ -10,8 +10,23 @@ const TASKS_FILE = path.join(DATA_DIR, "tasks.json");
 async function initStorage() {
   try {
     await fs.access(DATA_DIR);
-  } catch {
-    await fs.mkdir(DATA_DIR);
+  } catch (error) {
+    console.error("Error accessing DATA_DIR:", {
+      error,
+      DATA_DIR,
+      cwd: process.cwd(),
+      env: process.env.NODE_ENV,
+    });
+    try {
+      await fs.mkdir(DATA_DIR);
+      console.log("Created DATA_DIR successfully");
+    } catch (mkdirError) {
+      console.error("Error creating DATA_DIR:", {
+        error: mkdirError,
+        DATA_DIR,
+      });
+      throw new Error(`Failed to create data directory: ${mkdirError.message}`);
+    }
   }
 }
 
@@ -58,14 +73,30 @@ export async function getTasks(): Promise<Task[]> {
   try {
     const content = await fs.readFile(TASKS_FILE, "utf-8");
     return JSON.parse(content);
-  } catch {
+  } catch (error) {
+    console.error("Error reading tasks file:", {
+      error,
+      TASKS_FILE,
+      exists: await fs
+        .access(TASKS_FILE)
+        .then(() => true)
+        .catch(() => false),
+    });
     return [];
   }
 }
 
 export async function getTask(id: string): Promise<Task | null> {
-  const tasks = await getTasks();
-  return tasks.find((t) => t.id === id) || null;
+  try {
+    const tasks = await getTasks();
+    return tasks.find((t) => t.id === id) || null;
+  } catch (error) {
+    console.error("Error getting task by id:", {
+      error,
+      taskId: id,
+    });
+    throw error;
+  }
 }
 
 export async function getProjectTasks(projectId: string): Promise<Task[]> {
@@ -74,17 +105,30 @@ export async function getProjectTasks(projectId: string): Promise<Task[]> {
 }
 
 export async function saveTask(task: Task): Promise<Task> {
-  const tasks = await getTasks();
-  const index = tasks.findIndex((t) => t.id === task.id);
+  try {
+    const tasks = await getTasks();
+    const index = tasks.findIndex((t) => t.id === task.id);
 
-  if (index >= 0) {
-    tasks[index] = task;
-  } else {
-    tasks.push(task);
+    if (index >= 0) {
+      tasks[index] = task;
+    } else {
+      tasks.push(task);
+    }
+
+    await fs.writeFile(TASKS_FILE, JSON.stringify(tasks, null, 2));
+    return task;
+  } catch (error) {
+    console.error("Error saving task:", {
+      error,
+      task,
+      TASKS_FILE,
+      writePermission: await fs
+        .access(TASKS_FILE, fs.constants.W_OK)
+        .then(() => true)
+        .catch(() => false),
+    });
+    throw new Error(`Failed to save task: ${error.message}`);
   }
-
-  await fs.writeFile(TASKS_FILE, JSON.stringify(tasks, null, 2));
-  return task;
 }
 
 export async function deleteTask(id: string): Promise<boolean> {
