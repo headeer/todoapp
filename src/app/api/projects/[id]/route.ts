@@ -1,6 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
+import { getProject, saveProject, deleteProject } from "@/lib/storage";
+
+// Add route segment config
+export const dynamic = "force-dynamic";
+export const dynamicParams = true;
 
 interface Project {
   id: string;
@@ -59,80 +64,68 @@ async function initializeProjectsFile() {
   }
 }
 
-interface Params {
-  params: {
-    id: string;
-  };
-}
-
-// GET /api/projects/[id] - Get a specific project
-export async function GET(request: Request, { params }: Params) {
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
   try {
-    await ensureDataDirectory();
-    await initializeProjectsFile();
-
-    const fileContent = await fs.readFile(dataFilePath, "utf-8");
-    const projects = JSON.parse(fileContent) as Project[];
-    const project = projects.find((p) => p.id === params.id);
-
+    const project = await getProject(params.id);
     if (!project) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+      return new NextResponse(JSON.stringify({ error: "Project not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    return NextResponse.json(project);
+    return new NextResponse(JSON.stringify(project), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("Error fetching project:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch project" },
-      { status: 500 }
+    return new NextResponse(
+      JSON.stringify({ error: "Failed to fetch project" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }
 
-// PUT /api/projects/[id] - Update a project
-export async function PUT(request: Request, { params }: Params) {
+export async function PUT(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
   try {
-    await ensureDataDirectory();
-    await initializeProjectsFile();
+    const body = await request.json();
+    const project = await saveProject({ ...body, id: params.id });
 
-    const updatedProject = await request.json();
-    const fileContent = await fs.readFile(dataFilePath, "utf-8");
-    let projects = JSON.parse(fileContent) as Project[];
-
-    projects = projects.map((p) =>
-      p.id === params.id ? { ...p, ...updatedProject } : p
-    );
-
-    await fs.writeFile(dataFilePath, JSON.stringify(projects, null, 2));
-    const project = projects.find((p) => p.id === params.id);
-    return NextResponse.json(project);
+    return new NextResponse(JSON.stringify(project), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("Error updating project:", error);
-    return NextResponse.json(
-      { error: "Failed to update project" },
-      { status: 500 }
+    return new NextResponse(
+      JSON.stringify({ error: "Failed to update project" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }
 
-// DELETE /api/projects/[id] - Delete a project
-export async function DELETE(request: Request, { params }: Params) {
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
   try {
-    await ensureDataDirectory();
-    await initializeProjectsFile();
-
-    const fileContent = await fs.readFile(dataFilePath, "utf-8");
-    let projects = JSON.parse(fileContent) as Project[];
-
-    projects = projects.filter((p) => p.id !== params.id);
-    await fs.writeFile(dataFilePath, JSON.stringify(projects, null, 2));
-
-    return NextResponse.json({ success: true });
+    await deleteProject(params.id);
+    return new NextResponse(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("Error deleting project:", error);
-    return NextResponse.json(
-      { error: "Failed to delete project" },
-      { status: 500 }
+    return new NextResponse(
+      JSON.stringify({ error: "Failed to delete project" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }

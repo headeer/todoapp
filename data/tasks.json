@@ -43,7 +43,22 @@
     "id": "project-2-task-1",
     "title": "test",
     "description": "test",
-    "status": "TODO",
+    "status": "DONE",
+    "projectId": "project-2",
+    "checklistItems": [
+      {
+        "id": "1740599313836",
+        "text": "das",
+        "completed": true
+      }
+    ],
+    "priority": "medium"
+  },
+  {
+    "id": "project-2-task-2",
+    "title": "aaa",
+    "description": "aa",
+    "status": "IN_PROGRESS",
     "projectId": "project-2",
     "checklistItems": [],
     "priority": "medium"
