@@ -1,0 +1,51 @@
+[
+  {
+    "id": "project-1-task-1",
+    "title": "Design Homepage",
+    "description": "Create a modern and user-friendly homepage design",
+    "status": "IN_PROGRESS",
+    "projectId": "project-1",
+    "priority": "low",
+    "checklistItems": [
+      {
+        "id": "project-1-task-1-checklist-1",
+        "text": "Create wireframe",
+        "completed": true
+      },
+      {
+        "id": "project-1-task-1-checklist-2",
+        "text": "Design UI components",
+        "completed": false
+      }
+    ]
+  },
+  {
+    "id": "project-1-task-2",
+    "title": "Implement Contact Form",
+    "description": "Add a contact form with validation",
+    "status": "DONE",
+    "projectId": "project-1",
+    "priority": "medium",
+    "checklistItems": [
+      {
+        "id": "project-1-task-2-checklist-1",
+        "text": "Create form component",
+        "completed": true
+      },
+      {
+        "id": "project-1-task-2-checklist-2",
+        "text": "Add validation",
+        "completed": false
+      }
+    ]
+  },
+  {
+    "id": "project-2-task-1",
+    "title": "test",
+    "description": "test",
+    "status": "TODO",
+    "projectId": "project-2",
+    "checklistItems": [],
+    "priority": "medium"
+  }
+]

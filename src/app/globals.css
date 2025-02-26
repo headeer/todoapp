@@ -3,19 +3,305 @@
 @tailwind utilities;
 
 :root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #111e19;
+  --purple-primary: #6366f1;
+  --purple-light: #a5b4fc;
+  --purple-dark: #4f46e5;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #111e19;
+    --foreground: #f8f7f4;
   }
 }
 
 body {
+  min-height: 100vh;
   color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background-image: linear-gradient(to top, #09203f 0%, #537895 100%);
+  font-family: var(--font-inter), sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-poppins), sans-serif;
+  @apply text-white font-bold;
+}
+
+@layer components {
+  .project-title {
+    @apply text-xl font-bold text-emerald-400 mb-2 hover:text-emerald-300 cursor-pointer;
+  }
+
+  .project-description {
+    @apply text-gray-400 text-base mb-4;
+  }
+
+  .project-card {
+    @apply bg-gray-900/40 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700/30 p-6 flex flex-col hover:bg-gray-800/40 transition-all hover:scale-105 hover:shadow-xl cursor-pointer;
+    min-height: 200px;
+  }
+
+  .project-card-footer {
+    @apply mt-auto pt-4 border-t border-gray-700/30;
+  }
+
+  .project-status {
+    @apply absolute top-4 right-4;
+  }
+
+  .project-main-indicator {
+    @apply w-3 h-3 rounded-full bg-red-500;
+    animation: pulse 2s infinite;
+  }
+
+  .btn-primary {
+    @apply flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg transition-all font-medium shadow-lg hover:shadow-emerald-700/50 cursor-pointer hover:bg-emerald-500 hover:scale-105 active:scale-95;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 bg-gray-800 text-gray-200 rounded-lg hover:bg-gray-700 transition-all font-medium border border-gray-700 cursor-pointer hover:scale-105 active:scale-95;
+  }
+
+  .btn-danger {
+    @apply bg-red-500 text-white px-4 py-2 rounded-lg font-medium transition-all hover:bg-red-600 cursor-pointer hover:scale-105 active:scale-95;
+  }
+
+  .card {
+    @apply bg-gray-900/40 backdrop-blur-sm rounded-xl shadow-lg p-6 transition-all hover:shadow-xl border border-gray-700/30 hover:bg-gray-800/40;
+  }
+
+  .input {
+    @apply px-3 py-2 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-800 text-white;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium shadow-sm;
+  }
+
+  .badge-todo {
+    @apply badge bg-blue-900 text-blue-200;
+  }
+
+  .badge-in-progress {
+    @apply badge bg-amber-900 text-amber-200;
+  }
+
+  .badge-done {
+    @apply badge bg-emerald-900 text-emerald-200;
+  }
+
+  /* Custom checkbox styles */
+  .custom-checkbox {
+    @apply relative flex items-center;
+  }
+
+  .custom-checkbox input[type="checkbox"] {
+    @apply hidden;
+  }
+
+  .custom-checkbox .checkbox-icon {
+    @apply w-5 h-5 border-2 border-emerald-500 rounded flex items-center justify-center transition-colors cursor-pointer;
+  }
+
+  .custom-checkbox input[type="checkbox"]:checked + .checkbox-icon {
+    @apply bg-emerald-500;
+  }
+
+  .custom-checkbox .checkbox-icon svg {
+    @apply w-3 h-3 text-white opacity-0 transition-opacity;
+  }
+
+  .custom-checkbox input[type="checkbox"]:checked + .checkbox-icon svg {
+    @apply opacity-100;
+  }
+
+  /* Progress bar animations */
+  @keyframes progress-fill {
+    from {
+      width: 0%;
+    }
+    to {
+      width: var(--progress-width);
+    }
+  }
+
+  .animated-progress-bar {
+    animation: progress-fill 1s ease-out forwards;
+  }
+
+  /* Priority badges */
+  .priority-badge {
+    @apply px-2 py-1 rounded-full text-xs font-semibold;
+  }
+
+  .priority-high {
+    @apply bg-red-900 text-red-200;
+  }
+
+  .priority-medium {
+    @apply bg-amber-900 text-amber-200;
+  }
+
+  .priority-low {
+    @apply bg-emerald-900 text-emerald-200;
+  }
+
+  /* Task card dividers */
+  .task-divider {
+    @apply border-t border-gray-200 my-3;
+  }
+
+  /* Task columns */
+  .task-column {
+    @apply bg-gray-900/40 backdrop-blur-sm rounded-xl shadow-lg p-4 border border-gray-700/30;
+    min-height: 400px;
+  }
+
+  /* Task status counters */
+  .status-counter {
+    @apply flex items-center space-x-1 bg-gray-900/60 rounded-lg p-2 justify-center text-gray-300 cursor-pointer hover:bg-gray-800/60;
+  }
+
+  /* Modal styles */
+  .modal-content {
+    @apply bg-gray-900 border border-gray-700 text-white;
+  }
+
+  .modal-title-input {
+    @apply w-full px-3 py-2 text-xl font-bold text-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-transparent cursor-text;
+  }
+
+  /* Status text colors */
+  .status-todo {
+    @apply text-blue-400;
+  }
+
+  .status-in-progress {
+    @apply text-amber-400;
+  }
+
+  .status-done {
+    @apply text-emerald-400;
+  }
+
+  /* Task styles */
+  .task-title {
+    @apply text-lg font-bold text-emerald-400 hover:text-emerald-300 cursor-pointer;
+  }
+
+  .task-description {
+    @apply text-gray-400;
+  }
+
+  /* Clickable elements */
+  .clickable {
+    @apply cursor-pointer hover:opacity-90 transition-opacity;
+  }
+}
+
+/* Illustrations */
+.illustration-container {
+  @apply relative overflow-hidden;
+}
+
+.floating-shape {
+  @apply absolute opacity-50;
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+/* Hover effects */
+.hover-card {
+  @apply transition-all duration-300;
+}
+
+/* Icons */
+.icon-btn {
+  @apply p-2 rounded-full hover:bg-gray-700/50 transition-colors;
+}
+
+/* Status icons with glow */
+.status-icon {
+  @apply relative;
+}
+
+.status-icon::after {
+  @apply absolute inset-0 rounded-full blur-sm opacity-50;
+  content: "";
+  background: inherit;
+}
+
+/* Modern Loader Animation */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.loader-container {
+  @apply flex flex-col items-center justify-center gap-4;
+}
+
+.modern-loader {
+  @apply relative w-12 h-12;
+  animation: spin 1s linear infinite;
+}
+
+.modern-loader::before,
+.modern-loader::after {
+  @apply absolute inset-0 rounded-full border-4 border-transparent;
+  content: "";
+}
+
+.modern-loader::before {
+  @apply border-t-emerald-500 border-r-emerald-500;
+}
+
+.modern-loader::after {
+  @apply border-b-emerald-500/30 border-l-emerald-500/30;
+}
+
+.loader-text {
+  @apply text-emerald-400 text-lg font-medium;
 }
