@@ -57,8 +57,10 @@ export async function getProjects(): Promise<Project[]> {
   const projects = await prisma.project.findMany();
   return projects.map((p) => ({
     ...p,
-    description: p.description || undefined,
-    logo: p.logo || undefined,
+    description: p.description || "",
+    logo: p.logo || "/default-logo.png",
+    createdAt: new Date(p.createdAt),
+    updatedAt: new Date(p.updatedAt),
   }));
 }
 
