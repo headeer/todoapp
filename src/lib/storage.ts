@@ -1,167 +1,197 @@
-import { promises as fs } from "fs";
-import path from "path";
-import { Project, Task } from "@/app/projects/[id]/types";
+import {
+  Project,
+  Task,
+  TaskStatus,
+  TaskPriority,
+} from "@/app/projects/[id]/types";
+import { prisma } from "./prisma";
 
-// Use public directory in production, data directory in development
-const BASE_DIR =
-  process.env.NODE_ENV === "production"
-    ? path.join(process.cwd(), "public", "data")
-    : path.join(process.cwd(), "data");
+// Initialize with default data if empty
+const defaultProject = {
+  name: "Website Redesign",
+  description: "Modernize the company website with a fresh look",
+  logo: "/project-logo.png",
+  isMain: true,
+  viewed: false,
+};
 
-const DATA_DIR = BASE_DIR;
-const PROJECTS_FILE = path.join(DATA_DIR, "projects.json");
-const TASKS_FILE = path.join(DATA_DIR, "tasks.json");
+const defaultTask = {
+  title: "Design Homepage",
+  description: "Create a modern and user-friendly homepage design",
+  status: TaskStatus.TODO,
+  priority: TaskPriority.HIGH,
+  checklistItems: {
+    create: [
+      {
+        text: "Create wireframe",
+        completed: true,
+      },
+      {
+        text: "Design UI components",
+        completed: false,
+      },
+    ],
+  },
+};
 
-// Initialize storage
+// Initialize storage with default data
 async function initStorage() {
-  try {
-    await fs.access(DATA_DIR);
-  } catch (error) {
-    console.error("Error accessing DATA_DIR:", {
-      error,
-      DATA_DIR,
-      cwd: process.cwd(),
-      env: process.env.NODE_ENV,
+  const projectCount = await prisma.project.count();
+  if (projectCount === 0) {
+    const project = await prisma.project.create({
+      data: defaultProject,
     });
-    try {
-      // Create the full path recursively
-      await fs.mkdir(DATA_DIR, { recursive: true });
-      console.log("Created DATA_DIR successfully");
 
-      // Initialize empty files if they don't exist
-      try {
-        await fs.access(PROJECTS_FILE);
-      } catch {
-        await fs.writeFile(PROJECTS_FILE, "[]");
-      }
-
-      try {
-        await fs.access(TASKS_FILE);
-      } catch {
-        await fs.writeFile(TASKS_FILE, "[]");
-      }
-    } catch (mkdirError: unknown) {
-      console.error("Error creating DATA_DIR:", {
-        error: mkdirError,
-        DATA_DIR,
-      });
-      if (mkdirError instanceof Error) {
-        throw new Error(
-          `Failed to create data directory: ${mkdirError.message}`
-        );
-      }
-      throw new Error("Failed to create data directory");
-    }
+    await prisma.task.create({
+      data: {
+        ...defaultTask,
+        projectId: project.id,
+      },
+    });
   }
 }
 
 // Projects
 export async function getProjects(): Promise<Project[]> {
   await initStorage();
-  try {
-    const content = await fs.readFile(PROJECTS_FILE, "utf-8");
-    return JSON.parse(content);
-  } catch {
-    return [];
-  }
+  const projects = await prisma.project.findMany();
+  return projects.map((p) => ({
+    ...p,
+    description: p.description || undefined,
+    logo: p.logo || undefined,
+  }));
 }
 
 export async function getProject(id: string): Promise<Project | null> {
-  const projects = await getProjects();
-  return projects.find((p) => p.id === id) || null;
+  await initStorage();
+  const project = await prisma.project.findUnique({
+    where: { id },
+  });
+  if (!project) return null;
+  return {
+    ...project,
+    description: project.description || undefined,
+    logo: project.logo || undefined,
+  };
 }
 
 export async function saveProject(project: Project): Promise<Project> {
-  const projects = await getProjects();
-  const index = projects.findIndex((p) => p.id === project.id);
-
-  if (index >= 0) {
-    projects[index] = project;
-  } else {
-    projects.push(project);
-  }
-
-  await fs.writeFile(PROJECTS_FILE, JSON.stringify(projects, null, 2));
-  return project;
+  await initStorage();
+  const saved = await prisma.project.upsert({
+    where: { id: project.id },
+    update: project,
+    create: project,
+  });
+  return {
+    ...saved,
+    description: saved.description || undefined,
+    logo: saved.logo || undefined,
+  };
 }
 
 export async function deleteProject(id: string): Promise<boolean> {
-  const projects = await getProjects();
-  const filtered = projects.filter((p) => p.id !== id);
-  await fs.writeFile(PROJECTS_FILE, JSON.stringify(filtered, null, 2));
+  await initStorage();
+  await prisma.project.delete({
+    where: { id },
+  });
   return true;
 }
 
 // Tasks
 export async function getTasks(): Promise<Task[]> {
   await initStorage();
-  try {
-    const content = await fs.readFile(TASKS_FILE, "utf-8");
-    return JSON.parse(content);
-  } catch (error) {
-    console.error("Error reading tasks file:", {
-      error,
-      TASKS_FILE,
-      exists: await fs
-        .access(TASKS_FILE)
-        .then(() => true)
-        .catch(() => false),
-    });
-    return [];
-  }
+  const tasks = await prisma.task.findMany({
+    include: {
+      checklistItems: true,
+    },
+  });
+  return tasks.map((task) => ({
+    ...task,
+    description: task.description || "",
+    checklistItems: task.checklistItems.map((item) => ({
+      ...item,
+    })),
+  }));
 }
 
 export async function getTask(id: string): Promise<Task | null> {
-  try {
-    const tasks = await getTasks();
-    return tasks.find((t) => t.id === id) || null;
-  } catch (error) {
-    console.error("Error getting task by id:", {
-      error,
-      taskId: id,
-    });
-    throw error;
-  }
+  await initStorage();
+  const task = await prisma.task.findUnique({
+    where: { id },
+    include: {
+      checklistItems: true,
+    },
+  });
+  if (!task) return null;
+  return {
+    ...task,
+    description: task.description || "",
+    checklistItems: task.checklistItems.map((item) => ({
+      ...item,
+    })),
+  };
 }
 
 export async function getProjectTasks(projectId: string): Promise<Task[]> {
-  const tasks = await getTasks();
-  return tasks.filter((t) => t.projectId === projectId);
+  await initStorage();
+  const tasks = await prisma.task.findMany({
+    where: { projectId },
+    include: {
+      checklistItems: true,
+    },
+  });
+  return tasks.map((task) => ({
+    ...task,
+    description: task.description || "",
+    checklistItems: task.checklistItems.map((item) => ({
+      ...item,
+    })),
+  }));
 }
 
 export async function saveTask(task: Task): Promise<Task> {
-  try {
-    const tasks = await getTasks();
-    const index = tasks.findIndex((t) => t.id === task.id);
+  await initStorage();
+  const { checklistItems, ...taskData } = task;
 
-    if (index >= 0) {
-      tasks[index] = task;
-    } else {
-      tasks.push(task);
-    }
+  const saved = await prisma.task.upsert({
+    where: { id: task.id },
+    update: {
+      ...taskData,
+      checklistItems: {
+        deleteMany: {},
+        create: checklistItems.map((item) => ({
+          text: item.text,
+          completed: item.completed,
+        })),
+      },
+    },
+    create: {
+      ...taskData,
+      checklistItems: {
+        create: checklistItems.map((item) => ({
+          text: item.text,
+          completed: item.completed,
+        })),
+      },
+    },
+    include: {
+      checklistItems: true,
+    },
+  });
 
-    await fs.writeFile(TASKS_FILE, JSON.stringify(tasks, null, 2));
-    return task;
-  } catch (error: unknown) {
-    console.error("Error saving task:", {
-      error,
-      task,
-      TASKS_FILE,
-      writePermission: await fs
-        .access(TASKS_FILE, fs.constants.W_OK)
-        .then(() => true)
-        .catch(() => false),
-    });
-    if (error instanceof Error) {
-      throw new Error(`Failed to save task: ${error.message}`);
-    }
-    throw new Error("Failed to save task");
-  }
+  return {
+    ...saved,
+    description: saved.description || "",
+    checklistItems: saved.checklistItems.map((item) => ({
+      ...item,
+    })),
+  };
 }
 
 export async function deleteTask(id: string): Promise<boolean> {
-  const tasks = await getTasks();
-  const filtered = tasks.filter((t) => t.id !== id);
-  await fs.writeFile(TASKS_FILE, JSON.stringify(filtered, null, 2));
+  await initStorage();
+  await prisma.task.delete({
+    where: { id },
+  });
   return true;
 }
