@@ -18,16 +18,16 @@ const defaultProject = {
 const defaultTask = {
   title: "Design Homepage",
   description: "Create a modern and user-friendly homepage design",
-  status: TaskStatus.TODO,
-  priority: TaskPriority.HIGH,
+  status: "TODO",
+  priority: "HIGH",
   checklistItems: {
     create: [
       {
-        text: "Create wireframe",
+        title: "Create wireframe",
         completed: true,
       },
       {
-        text: "Design UI components",
+        title: "Design UI components",
         completed: false,
       },
     ],
@@ -110,6 +110,7 @@ export async function getTasks(): Promise<Task[]> {
     description: task.description || "",
     checklistItems: task.checklistItems.map((item) => ({
       ...item,
+      text: item.title,
     })),
   }));
 }
@@ -128,6 +129,7 @@ export async function getTask(id: string): Promise<Task | null> {
     description: task.description || "",
     checklistItems: task.checklistItems.map((item) => ({
       ...item,
+      text: item.title,
     })),
   };
 }
@@ -145,6 +147,7 @@ export async function getProjectTasks(projectId: string): Promise<Task[]> {
     description: task.description || "",
     checklistItems: task.checklistItems.map((item) => ({
       ...item,
+      text: item.title,
     })),
   }));
 }
@@ -160,7 +163,7 @@ export async function saveTask(task: Task): Promise<Task> {
       checklistItems: {
         deleteMany: {},
         create: checklistItems.map((item) => ({
-          text: item.text,
+          title: item.text,
           completed: item.completed,
         })),
       },
@@ -169,7 +172,7 @@ export async function saveTask(task: Task): Promise<Task> {
       ...taskData,
       checklistItems: {
         create: checklistItems.map((item) => ({
-          text: item.text,
+          title: item.text,
           completed: item.completed,
         })),
       },
@@ -184,6 +187,7 @@ export async function saveTask(task: Task): Promise<Task> {
     description: saved.description || "",
     checklistItems: saved.checklistItems.map((item) => ({
       ...item,
+      text: item.title,
     })),
   };
 }

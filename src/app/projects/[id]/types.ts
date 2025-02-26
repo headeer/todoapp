@@ -1,8 +1,18 @@
-export type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
-export type TaskPriority = "HIGH" | "MEDIUM" | "LOW";
+export enum TaskStatus {
+  TODO = "TODO",
+  IN_PROGRESS = "IN_PROGRESS",
+  DONE = "DONE",
+}
+
+export enum TaskPriority {
+  HIGH = "HIGH",
+  MEDIUM = "MEDIUM",
+  LOW = "LOW",
+}
 
 export interface ChecklistItem {
   id: string;
+  title: string;
   text: string;
   completed: boolean;
   taskId: string;
@@ -14,9 +24,9 @@ export interface Task {
   id: string;
   title: string;
   description: string;
-  status: "TODO" | "IN_PROGRESS" | "DONE";
+  status: string;
+  priority: string;
   projectId: string;
-  priority: "HIGH" | "MEDIUM" | "LOW";
   checklistItems: ChecklistItem[];
   createdAt: Date;
   updatedAt: Date;
