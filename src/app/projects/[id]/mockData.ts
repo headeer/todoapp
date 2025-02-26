@@ -43,8 +43,8 @@ export const mockTasks: Task[] = [
     id: "1",
     title: "Design Homepage",
     description: "Create a modern and user-friendly homepage design",
-    status: "TODO",
-    priority: "HIGH",
+    status: TaskStatus.TODO,
+    priority: TaskPriority.HIGH,
     projectId: "1",
     checklistItems: [
       {
@@ -73,8 +73,8 @@ export const mockTasks: Task[] = [
     id: "2",
     title: "Implement Authentication",
     description: "Add user authentication and authorization",
-    status: "IN_PROGRESS",
-    priority: "MEDIUM",
+    status: TaskStatus.IN_PROGRESS,
+    priority: TaskPriority.MEDIUM,
     projectId: "1",
     checklistItems: [
       {
@@ -103,8 +103,8 @@ export const mockTasks: Task[] = [
     id: "3",
     title: "Optimize Images",
     description: "Optimize all images for better performance",
-    status: "DONE",
-    priority: "LOW",
+    status: TaskStatus.DONE,
+    priority: TaskPriority.LOW,
     projectId: "1",
     checklistItems: [
       {
@@ -133,8 +133,8 @@ export const mockTasks: Task[] = [
     id: "4",
     title: "SEO Improvements",
     description: "Implement SEO best practices",
-    status: "TODO",
-    priority: "MEDIUM",
+    status: TaskStatus.TODO,
+    priority: TaskPriority.MEDIUM,
     projectId: "2",
     checklistItems: [
       {
@@ -163,8 +163,8 @@ export const mockTasks: Task[] = [
     id: "5",
     title: "Mobile Responsiveness",
     description: "Ensure website works well on all devices",
-    status: "IN_PROGRESS",
-    priority: "HIGH",
+    status: TaskStatus.IN_PROGRESS,
+    priority: TaskPriority.HIGH,
     projectId: "2",
     checklistItems: [
       {
