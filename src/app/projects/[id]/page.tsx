@@ -40,6 +40,8 @@ import {
   createNewTask,
   createNewChecklistItem,
 } from "./types";
+import TaskModal from "@/components/TaskModal";
+import ChecklistSection from "@/components/ChecklistSection";
 
 // Generate unique IDs using a counter to ensure consistency
 let idCounter = 0;
@@ -205,7 +207,6 @@ export default function ProjectDetail() {
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-  const [isTaskDetailModalOpen, setIsTaskDetailModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [newTask, setNewTask] = useState<Task>(() => createNewTask(projectId));
   const [activeTask, setActiveTask] = useState<Task | null>(null);
@@ -287,7 +288,8 @@ export default function ProjectDetail() {
   const handleChecklistItemChange = (
     taskId: string,
     itemId: string,
-    text: string
+    text: string,
+    completed?: boolean
   ) => {
     const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
@@ -298,6 +300,7 @@ export default function ProjectDetail() {
             ...item,
             text,
             title: text,
+            completed: completed !== undefined ? completed : item.completed,
             updatedAt: new Date(),
           }
         : item
@@ -312,6 +315,10 @@ export default function ProjectDetail() {
     setTasks((prevTasks) =>
       prevTasks.map((t) => (t.id === taskId ? updatedTask : t))
     );
+
+    if (selectedTask?.id === taskId) {
+      setSelectedTask(updatedTask);
+    }
   };
 
   const handleStatusChange = (taskId: string, newStatus: TaskStatus) => {
@@ -379,12 +386,12 @@ export default function ProjectDetail() {
 
     if (targetStatus && activeTask.status !== targetStatus) {
       // Optimistically update the UI
-    const updatedTasks = tasks.map((task) =>
+      const updatedTasks = tasks.map((task) =>
         task.id === activeId
           ? { ...task, status: targetStatus as TaskStatus }
           : task
-    );
-    setTasks(updatedTasks);
+      );
+      setTasks(updatedTasks);
 
       // Update the task in the database
       try {
@@ -411,52 +418,17 @@ export default function ProjectDetail() {
 
   const openTaskDetail = (task: Task) => {
     setSelectedTask(task);
-    setIsTaskDetailModalOpen(true);
+    setIsTaskModalOpen(true);
   };
 
   const handleToggleChecklistItem = (taskId: string, itemId: string) => {
-    const updatedTasks = tasks.map((task) => {
-      if (task.id === taskId) {
-        const updatedItems = task.checklistItems.map((item) => {
-          if (item.id === itemId) {
-            return { ...item, completed: !item.completed };
-          }
-          return item;
-        });
-        return { ...task, checklistItems: updatedItems };
-      }
-      return task;
-    });
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
 
-    setTasks(updatedTasks);
-    if (selectedTask?.id === taskId) {
-      setSelectedTask(updatedTasks.find((t) => t.id === taskId) || null);
-    }
-  };
+    const item = task.checklistItems.find((i) => i.id === itemId);
+    if (!item) return;
 
-  const handleSaveTask = async () => {
-    if (!selectedTask) return;
-
-    try {
-      const response = await fetch("/api/tasks", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(selectedTask),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update task");
-      }
-
-      setTasks(
-        tasks.map((task) => (task.id === selectedTask.id ? selectedTask : task))
-      );
-      setIsTaskDetailModalOpen(false);
-    } catch (error) {
-      console.error("Error updating task:", error);
-    }
+    handleChecklistItemChange(taskId, itemId, item.text, !item.completed);
   };
 
   const handleTaskStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -476,7 +448,7 @@ export default function ProjectDetail() {
   };
 
   if (!project || isLoading) {
-    return <Loader message="Loading project details..." />;
+    return <Loader />;
   }
 
   const todoTasks = tasks.filter((task) => task.status === TaskStatus.TODO);
@@ -533,8 +505,8 @@ export default function ProjectDetail() {
             </div>
           )}
           <h1 className="text-3xl font-bold text-emerald-400">
-          {project.name}
-        </h1>
+            {project.name}
+          </h1>
         </div>
       </div>
 
@@ -543,7 +515,10 @@ export default function ProjectDetail() {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-emerald-400">Tasks</h2>
         <button
-          onClick={() => setIsTaskModalOpen(true)}
+          onClick={() => {
+            setSelectedTask(null);
+            setIsTaskModalOpen(true);
+          }}
           className="btn-primary"
         >
           <svg
@@ -577,7 +552,7 @@ export default function ProjectDetail() {
                 status="TODO"
                 onTaskClick={openTaskDetail}
               />
-                          </div>
+            </div>
 
             <div>
               <TaskColumn
@@ -586,7 +561,7 @@ export default function ProjectDetail() {
                 status="IN_PROGRESS"
                 onTaskClick={openTaskDetail}
               />
-          </div>
+            </div>
 
             <div>
               <TaskColumn
@@ -595,15 +570,15 @@ export default function ProjectDetail() {
                 status="DONE"
                 onTaskClick={openTaskDetail}
               />
-                          </div>
-                        </div>
+            </div>
+          </div>
           <DragOverlay>
             {activeTask ? (
               <div className="bg-gray-900/90 backdrop-blur-sm border border-emerald-500/50 rounded-lg p-4 shadow-lg w-[calc(100%-1rem)]">
                 <div className="flex justify-between items-start mb-3">
                   <h4 className="font-bold text-emerald-400 text-lg">
                     {activeTask.title}
-                          </h4>
+                  </h4>
                   <div className="flex items-center space-x-2">
                     <StatusIcon status={activeTask.status} size="sm" />
                     <span
@@ -612,12 +587,12 @@ export default function ProjectDetail() {
                       {activeTask.priority.charAt(0).toUpperCase() +
                         activeTask.priority.slice(1)}
                     </span>
-                          </div>
-                        </div>
+                  </div>
+                </div>
                 <p className="text-gray-400 text-sm line-clamp-2">
                   {activeTask.description}
                 </p>
-                </div>
+              </div>
             ) : null}
           </DragOverlay>
         </DndContext>
@@ -626,466 +601,46 @@ export default function ProjectDetail() {
       {/* Create Task Modal */}
       <AnimatePresence>
         {isTaskModalOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50 z-40"
-              onClick={() => setIsTaskModalOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="fixed inset-0 flex items-center justify-center z-50 p-4"
-            >
-              <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-2xl font-bold text-black">
-                  Create New Task
-                </h2>
-                  <button
-                    onClick={() => setIsTaskModalOpen(false)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-6 w-6"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
-                </div>
-                <div className="mb-4">
-                  <label
-                    className="block text-black font-bold mb-2"
-                    htmlFor="title"
-                  >
-                    Task Title
-                  </label>
-                  <input
-                    id="title"
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-black"
-                    placeholder="Enter task title"
-                    value={newTask.title}
-                    onChange={(e) =>
-                      setNewTask({ ...newTask, title: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="mb-4">
-                  <label
-                    className="block text-black font-bold mb-2"
-                    htmlFor="description"
-                  >
-                    Description
-                  </label>
-                  <textarea
-                    id="description"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 h-24 bg-white text-black"
-                    placeholder="Enter task description"
-                    value={newTask.description}
-                    onChange={(e) =>
-                      setNewTask({ ...newTask, description: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="mb-4">
-                  <label
-                    className="block text-black font-bold mb-2"
-                    htmlFor="status"
-                  >
-                    Initial Status
-                  </label>
-                  <select
-                    id="status"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-black"
-                    value={newTask.status}
-                    onChange={(e) =>
-                      setNewTask({
-                        ...newTask,
-                        status: e.target.value as TaskStatus,
-                      })
-                    }
-                  >
-                    <option value={TaskStatus.TODO}>To Do</option>
-                    <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
-                    <option value={TaskStatus.DONE}>Done</option>
-                  </select>
-                </div>
-                <div className="mb-4">
-                  <label
-                    className="block text-black font-bold mb-2"
-                    htmlFor="priority"
-                  >
-                    Priority
-                  </label>
-                  <select
-                    id="priority"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-black"
-                    value={newTask.priority}
-                    onChange={(e) =>
-                      setNewTask({
-                        ...newTask,
-                        priority: e.target.value as TaskPriority,
-                      })
-                    }
-                  >
-                    <option value={TaskPriority.LOW}>Low</option>
-                    <option value={TaskPriority.MEDIUM}>Medium</option>
-                    <option value={TaskPriority.HIGH}>High</option>
-                  </select>
-                </div>
-                <div className="mb-6">
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="block text-black font-bold">
-                      Checklist Items
-                    </label>
-                    <button
-                      type="button"
-                      onClick={handleAddNewChecklistItem}
-                      className="text-purple-700 hover:text-purple-900 text-sm font-bold"
-                    >
-                      + Add Item
-                    </button>
-                  </div>
-                  {newTask.checklistItems.map((item) => (
-                    <div key={item.id} className="flex items-center space-x-2">
-                      <input
-                        type="text"
-                        value={item.text}
-                        onChange={(e) =>
-                          handleChecklistItemChange(
-                            newTask.id,
-                            item.id,
-                            e.target.value
-                          )
-                        }
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        placeholder="Add checklist item"
-                      />
-                    </div>
-                  ))}
-                </div>
-                <div className="border-t border-gray-300 pt-4">
-                <div className="flex justify-end space-x-3">
-                  <button
-                      className="px-4 py-2 rounded-lg text-black border border-gray-300 hover:bg-gray-100 transition-colors font-medium"
-                    onClick={() => setIsTaskModalOpen(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
-                    onClick={handleCreateTask}
-                    disabled={!newTask.title}
-                  >
-                    Create Task
-                  </button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Task Detail Modal */}
-      <AnimatePresence>
-        {isTaskDetailModalOpen && selectedTask && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50 z-40"
-              onClick={() => {
-                // Check if task has been edited
-                const originalTask = tasks.find(
-                  (t) => t.id === selectedTask.id
+          <TaskModal
+            isOpen={isTaskModalOpen}
+            onClose={() => setIsTaskModalOpen(false)}
+            task={selectedTask || undefined}
+            projectId={project.id}
+            onSave={(updatedTask) => {
+              if (updatedTask.id) {
+                // Update existing task
+                setTasks((prevTasks) =>
+                  prevTasks.map((t) =>
+                    t.id === updatedTask.id ? updatedTask : t
+                  )
                 );
-                const isEdited =
-                  JSON.stringify(originalTask) !== JSON.stringify(selectedTask);
 
-                if (isEdited) {
-                  if (
-                    confirm(
-                      "You have unsaved changes. Are you sure you want to close?"
-                    )
-                  ) {
-                    setIsTaskDetailModalOpen(false);
-                  }
-                } else {
-                  setIsTaskDetailModalOpen(false);
-                }
-              }}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="fixed inset-0 flex items-center justify-center z-50 p-4"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-2xl font-bold text-black">
-                  <input
-                    type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-black"
-                    value={selectedTask.title}
-                    onChange={(e) =>
-                      setSelectedTask({
-                        ...selectedTask,
-                        title: e.target.value,
-                      })
-                    }
-                  />
-                </h2>
-                  <button
-                    onClick={() => {
-                      // Check if task has been edited
-                      const originalTask = tasks.find(
-                        (t) => t.id === selectedTask.id
-                      );
-                      const isEdited =
-                        JSON.stringify(originalTask) !==
-                        JSON.stringify(selectedTask);
+                // Save to API
+                fetch("/api/tasks", {
+                  method: "PUT",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify(updatedTask),
+                }).catch((error) => {
+                  console.error("Error updating task:", error);
+                });
+              } else {
+                // Create new task with a temporary ID
+                const newTaskWithId = {
+                  ...updatedTask,
+                  id: `temp-${Date.now()}`,
+                };
 
-                      if (isEdited) {
-                        if (
-                          confirm(
-                            "You have unsaved changes. Are you sure you want to close?"
-                          )
-                        ) {
-                          setIsTaskDetailModalOpen(false);
-                        }
-                      } else {
-                        setIsTaskDetailModalOpen(false);
-                      }
-                    }}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-6 w-6"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
-                </div>
-                <div className="mb-4">
-                  <label className="block text-black font-bold mb-2">
-                    Description
-                  </label>
-                  <textarea
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 h-24 bg-white text-black"
-                    value={selectedTask.description}
-                    onChange={(e) =>
-                      setSelectedTask({
-                        ...selectedTask,
-                        description: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-black font-bold mb-2">
-                    Status
-                  </label>
-                  <select
-                    value={selectedTask.status}
-                    onChange={handleTaskStatusChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
-                  >
-                    <option value={TaskStatus.TODO}>To Do</option>
-                    <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
-                    <option value={TaskStatus.DONE}>Done</option>
-                  </select>
-                </div>
-                <div className="mb-4">
-                  <label className="block text-black font-bold mb-2">
-                    Priority
-                  </label>
-                  <select
-                    value={selectedTask.priority}
-                    onChange={handleTaskPriorityChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
-                  >
-                    <option value={TaskPriority.HIGH}>High</option>
-                    <option value={TaskPriority.MEDIUM}>Medium</option>
-                    <option value={TaskPriority.LOW}>Low</option>
-                  </select>
-                </div>
-                <div className="mb-6">
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="block text-black font-bold">
-                      Checklist
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedTask({
-                          ...selectedTask,
-                          checklistItems: [
-                            ...selectedTask.checklistItems,
-                            createNewChecklistItem(selectedTask.id),
-                          ],
-                        });
-                      }}
-                      className="text-purple-700 hover:text-purple-900 text-sm font-bold"
-                    >
-                      + Add Item
-                    </button>
-                  </div>
+                setTasks((prevTasks) => [...prevTasks, newTaskWithId]);
 
-                  {/* Progress bar for checklist */}
-                  {selectedTask.checklistItems.length > 0 && (
-                    <div className="mb-4">
-                      <div className="flex justify-between text-sm text-black font-medium mb-1">
-                        <span>Overall Progress</span>
-                        <span>
-                          {
-                            selectedTask.checklistItems.filter(
-                              (item) => item.completed
-                            ).length
-                          }{" "}
-                          / {selectedTask.checklistItems.length}
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="h-2 rounded-full bg-purple-500"
-                          style={{
-                            width: `${
-                              selectedTask.checklistItems.length > 0
-                                ? (selectedTask.checklistItems.filter(
-                                    (item) => item.completed
-                                  ).length /
-                                    selectedTask.checklistItems.length) *
-                                  100
-                                : 0
-                            }%`,
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedTask.checklistItems.map((item, index) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center mb-2 p-3 rounded-lg"
-                    >
-                      <label className="custom-checkbox mr-3">
-                        <input
-                          type="checkbox"
-                          checked={item.completed}
-                          onChange={(e) =>
-                            handleChecklistItemChange(
-                              selectedTask.id,
-                              item.id,
-                              e.target.checked ? item.text : ""
-                            )
-                          }
-                        />
-                        <div className="checkbox-icon">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </div>
-                      </label>
-                        <input
-                          type="text"
-                        className={`flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 mr-2 ${
-                          item.completed
-                            ? "line-through text-gray-500"
-                            : "text-black"
-                        }`}
-                          value={item.text}
-                        onChange={(e) =>
-                          handleChecklistItemChange(
-                            selectedTask.id,
-                            item.id,
-                            e.target.value
-                          )
-                        }
-                        />
-                        <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const updatedItems =
-                            selectedTask.checklistItems.filter(
-                              (_, i) => i !== index
-                            );
-                            setSelectedTask({
-                              ...selectedTask,
-                            checklistItems: updatedItems,
-                            });
-                          }}
-                        className="text-red-500 hover:text-red-700 p-2"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                          >
-                            <path
-                              fillRule="evenodd"
-                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                  ))}
-                </div>
-                <div className="border-t border-gray-300 pt-4 mt-6">
-                <div className="flex justify-end space-x-3">
-                  <button
-                      className="px-4 py-2 rounded-lg text-gray-700 border border-gray-300 hover:bg-gray-100 transition-colors font-medium"
-                    onClick={() => setIsTaskDetailModalOpen(false)}
-                  >
-                    Cancel
-                  </button>
-                    <button
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
-                      onClick={handleSaveTask}
-                    >
-                    Save Changes
-                  </button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </>
+                // Save to API
+                createTask(updatedTask).catch((error) => {
+                  console.error("Error creating task:", error);
+                });
+              }
+            }}
+          />
         )}
       </AnimatePresence>
     </div>

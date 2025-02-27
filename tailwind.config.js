@@ -46,6 +46,7 @@ module.exports = {
       animation: {
         "spin-slow": "spin 3s linear infinite",
         float: "float 6s ease-in-out infinite",
+        reverse: "spin 1s linear infinite reverse",
       },
       keyframes: {
         float: {
