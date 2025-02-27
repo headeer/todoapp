@@ -91,6 +91,7 @@ export const mockTasks: Task[] = [
     status: TaskStatus.DONE,
     priority: TaskPriority.LOW,
     projectId: "1",
+    plannedDate: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
     checklistItems: [
       {
         id: "5",
@@ -121,6 +122,7 @@ export const mockTasks: Task[] = [
     status: TaskStatus.TODO,
     priority: TaskPriority.MEDIUM,
     projectId: "2",
+    plannedDate: new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000), // 4 days in future
     checklistItems: [
       {
         id: "7",
@@ -151,6 +153,7 @@ export const mockTasks: Task[] = [
     status: TaskStatus.IN_PROGRESS,
     priority: TaskPriority.HIGH,
     projectId: "2",
+    plannedDate: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
     checklistItems: [
       {
         id: "9",
@@ -181,6 +184,7 @@ export const mockTasks: Task[] = [
     status: TaskStatus.TODO,
     priority: TaskPriority.HIGH,
     projectId: "1",
+    plannedDate: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000), // 2 days in future
     checklistItems: [
       {
         id: "5",
