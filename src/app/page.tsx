@@ -171,7 +171,7 @@ export default function Home() {
   };
 
   if (isLoading) {
-    return <Loader message="Loading your workspace..." />;
+    return <Loader />;
   }
 
   return (
