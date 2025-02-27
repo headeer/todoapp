@@ -54,9 +54,11 @@ const generateId = (prefix: string, projectId: string) => {
 function SortableTaskItem({
   task,
   onClick,
+  onDelete,
 }: {
   task: Task;
   onClick: () => void;
+  onDelete: (e: React.MouseEvent, taskId: string) => void;
 }) {
   const {
     attributes,
@@ -82,18 +84,55 @@ function SortableTaskItem({
   const progress =
     totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 
+  const isPastDue =
+    task.plannedDate &&
+    new Date(task.plannedDate) < new Date() &&
+    task.status !== TaskStatus.DONE;
+
+  const formatDate = (date: Date): string => {
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(date);
+  };
+
   return (
     <motion.div
       ref={setNodeRef}
       style={style}
       {...attributes}
       {...listeners}
-      className="bg-gray-900/40 backdrop-blur-sm border border-gray-700/30 rounded-lg p-4 mb-3 cursor-pointer hover:shadow-md transition-shadow"
+      className="bg-gray-900/40 backdrop-blur-sm border border-gray-700/30 rounded-lg p-4 mb-3 cursor-pointer hover:shadow-md transition-shadow relative"
       onClick={onClick}
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
     >
-      <div className="flex justify-between items-start mb-3">
+      <div className="absolute top-2 right-2">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(e, task.id);
+          }}
+          className="text-gray-400 hover:text-red-500 transition-colors"
+          aria-label="Delete task"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fillRule="evenodd"
+              d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <div className="flex justify-between items-start mb-3 pr-6">
         <h4 className="font-bold text-emerald-400 text-lg hover:text-emerald-300">
           {task.title}
         </h4>
@@ -110,6 +149,33 @@ function SortableTaskItem({
       <p className="text-gray-400 text-sm mb-4 line-clamp-2">
         {task.description}
       </p>
+
+      {task.plannedDate && (
+        <div
+          className={`text-sm mb-3 ${
+            isPastDue ? "text-red-500 font-medium" : "text-gray-400"
+          }`}
+        >
+          <span className="flex items-center">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4 mr-1"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+            {formatDate(new Date(task.plannedDate))}
+            {isPastDue && " (Past due)"}
+          </span>
+        </div>
+      )}
 
       {totalItems > 0 && (
         <div className="mt-3">
@@ -143,11 +209,13 @@ function TaskColumn({
   tasks,
   status,
   onTaskClick,
+  onTaskDelete,
 }: {
   title: string;
   tasks: Task[];
   status: "TODO" | "IN_PROGRESS" | "DONE";
   onTaskClick: (task: Task) => void;
+  onTaskDelete: (e: React.MouseEvent, taskId: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: status,
@@ -182,6 +250,7 @@ function TaskColumn({
               key={task.id}
               task={task}
               onClick={() => onTaskClick(task)}
+              onDelete={onTaskDelete}
             />
           ))}
         </SortableContext>
@@ -447,6 +516,36 @@ export default function ProjectDetail() {
     handlePriorityChange(selectedTask.id, newPriority as TaskPriority);
   };
 
+  const handleDeleteTask = async (e: React.MouseEvent, taskId: string) => {
+    e.stopPropagation();
+
+    if (!confirm("Are you sure you want to delete this task?")) {
+      return;
+    }
+
+    try {
+      // Optimistically update UI
+      setTasks(tasks.filter((task) => task.id !== taskId));
+
+      // Delete from API
+      const response = await fetch(`/api/tasks?id=${taskId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete task");
+      }
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      // Reload tasks if there was an error
+      const tasksResponse = await fetch(`/api/tasks?projectId=${projectId}`);
+      if (tasksResponse.ok) {
+        const tasksData = await tasksResponse.json();
+        setTasks(tasksData.map(mapTaskDataToTask));
+      }
+    }
+  };
+
   if (!project || isLoading) {
     return <Loader />;
   }
@@ -551,6 +650,7 @@ export default function ProjectDetail() {
                 tasks={todoTasks}
                 status="TODO"
                 onTaskClick={openTaskDetail}
+                onTaskDelete={handleDeleteTask}
               />
             </div>
 
@@ -560,6 +660,7 @@ export default function ProjectDetail() {
                 tasks={inProgressTasks}
                 status="IN_PROGRESS"
                 onTaskClick={openTaskDetail}
+                onTaskDelete={handleDeleteTask}
               />
             </div>
 
@@ -569,6 +670,7 @@ export default function ProjectDetail() {
                 tasks={doneTasks}
                 status="DONE"
                 onTaskClick={openTaskDetail}
+                onTaskDelete={handleDeleteTask}
               />
             </div>
           </div>

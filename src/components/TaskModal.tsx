@@ -29,6 +29,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   const [status, setStatus] = useState<TaskStatus>(TaskStatus.TODO);
   const [priority, setPriority] = useState<TaskPriority>(TaskPriority.MEDIUM);
   const [checklistItems, setChecklistItems] = useState<ChecklistItemType[]>([]);
+  const [plannedDate, setPlannedDate] = useState<string>("");
 
   useEffect(() => {
     if (task) {
@@ -37,14 +38,22 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       setStatus(task.status);
       setPriority(task.priority);
       setChecklistItems(task.checklistItems || []);
+      setPlannedDate(
+        task.plannedDate ? formatDateForInput(task.plannedDate) : ""
+      );
     } else {
       setTitle("");
       setDescription("");
       setStatus(TaskStatus.TODO);
       setPriority(TaskPriority.MEDIUM);
       setChecklistItems([]);
+      setPlannedDate("");
     }
   }, [task, isOpen]);
+
+  const formatDateForInput = (date: Date): string => {
+    return date.toISOString().split("T")[0];
+  };
 
   const handleSave = () => {
     if (!title.trim()) return;
@@ -57,6 +66,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       priority,
       projectId,
       checklistItems,
+      plannedDate: plannedDate ? new Date(plannedDate) : null,
       createdAt: task?.createdAt || new Date(),
       updatedAt: new Date(),
     };
@@ -131,6 +141,22 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               rows={3}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm text-gray-800"
               placeholder="Task description"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="plannedDate"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Planned Date
+            </label>
+            <input
+              type="date"
+              id="plannedDate"
+              value={plannedDate}
+              onChange={(e) => setPlannedDate(e.target.value)}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm text-gray-800"
             />
           </div>
 

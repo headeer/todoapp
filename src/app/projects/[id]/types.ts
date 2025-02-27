@@ -28,6 +28,7 @@ export interface Task {
   priority: TaskPriority;
   projectId: string;
   checklistItems: ChecklistItem[];
+  plannedDate: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,19 +47,22 @@ export interface Project {
 export interface TaskData {
   id: string;
   title: string;
-  description: string;
+  description: string | null;
   status: string;
   priority: string;
   projectId: string;
-  checklistItems: {
-    id: string;
-    title: string;
-    text: string;
-    completed: boolean;
-    taskId: string;
-    createdAt: string;
-    updatedAt: string;
-  }[];
+  plannedDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+  checklistItems: ChecklistItemData[];
+}
+
+export interface ChecklistItemData {
+  id: string;
+  title: string;
+  text: string;
+  completed: boolean;
+  taskId: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -73,20 +77,40 @@ export const validateTaskPriority = (
   return Object.values(TaskPriority).includes(priority as TaskPriority);
 };
 
-export const mapTaskDataToTask = (taskData: TaskData): Task => {
+export function mapChecklistItemDataToChecklistItem(
+  itemData: ChecklistItemData
+): ChecklistItem {
   return {
-    ...taskData,
-    status: TaskStatus[taskData.status as keyof typeof TaskStatus],
-    priority: TaskPriority[taskData.priority as keyof typeof TaskPriority],
-    checklistItems: taskData.checklistItems.map((item) => ({
-      ...item,
-      createdAt: new Date(item.createdAt),
-      updatedAt: new Date(item.updatedAt),
-    })),
+    id: itemData.id,
+    title: itemData.title,
+    text: itemData.text,
+    completed: itemData.completed,
+    taskId: itemData.taskId,
+    createdAt: new Date(itemData.createdAt),
+    updatedAt: new Date(itemData.updatedAt),
+  };
+}
+
+export function mapTaskDataToTask(taskData: TaskData): Task {
+  return {
+    id: taskData.id,
+    title: taskData.title,
+    description: taskData.description || "",
+    status: validateTaskStatus(taskData.status)
+      ? (taskData.status as TaskStatus)
+      : TaskStatus.TODO,
+    priority: validateTaskPriority(taskData.priority)
+      ? (taskData.priority as TaskPriority)
+      : TaskPriority.MEDIUM,
+    projectId: taskData.projectId,
+    plannedDate: taskData.plannedDate ? new Date(taskData.plannedDate) : null,
     createdAt: new Date(taskData.createdAt),
     updatedAt: new Date(taskData.updatedAt),
+    checklistItems: taskData.checklistItems.map(
+      mapChecklistItemDataToChecklistItem
+    ),
   };
-};
+}
 
 export const createNewTask = (projectId: string): Task => {
   const now = new Date();
@@ -98,6 +122,7 @@ export const createNewTask = (projectId: string): Task => {
     priority: TaskPriority.MEDIUM,
     projectId,
     checklistItems: [],
+    plannedDate: null,
     createdAt: now,
     updatedAt: now,
   };
