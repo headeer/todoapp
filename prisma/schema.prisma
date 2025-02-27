@@ -39,6 +39,7 @@ model Task {
   checklistItems ChecklistItem[]
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
+  plannedDate    DateTime?
 }
 
 model ChecklistItem {

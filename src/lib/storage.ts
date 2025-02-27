@@ -27,21 +27,22 @@ function convertPrismaTask(prismaTask: PrismaTask): Task {
     title: prismaTask.title,
     description: prismaTask.description || "",
     status: prismaTask.status as TaskStatus,
-    priority: prismaTask.priority.toLowerCase() as TaskPriority,
+    priority: prismaTask.priority as TaskPriority,
     projectId: prismaTask.projectId,
-    checklistItems: prismaTask.checklistItems.map(
-      (item: PrismaChecklistItem) => ({
-        id: item.id,
-        title: item.title,
-        text: item.title,
-        completed: item.completed,
-        taskId: item.taskId,
-        createdAt: item.createdAt,
-        updatedAt: item.updatedAt,
-      })
-    ),
-    createdAt: prismaTask.createdAt,
-    updatedAt: prismaTask.updatedAt,
+    plannedDate: (prismaTask as any).plannedDate
+      ? new Date((prismaTask as any).plannedDate)
+      : null,
+    checklistItems: prismaTask.checklistItems.map((item: any) => ({
+      id: item.id,
+      title: item.title,
+      text: item.text || item.title,
+      completed: item.completed,
+      taskId: item.taskId,
+      createdAt: new Date(item.createdAt),
+      updatedAt: new Date(item.updatedAt),
+    })),
+    createdAt: new Date(prismaTask.createdAt),
+    updatedAt: new Date(prismaTask.updatedAt),
   };
 }
 
@@ -58,6 +59,7 @@ function convertToPrismaCreateTask(
     description: task.description,
     status: task.status || "TODO",
     priority: (task.priority || "MEDIUM").toUpperCase(),
+    plannedDate: task.plannedDate,
     project: {
       connect: { id: task.projectId },
     },
@@ -82,6 +84,7 @@ function convertToPrismaUpdateTask(
   if (task.description) data.description = task.description;
   if (task.status) data.status = task.status.toUpperCase();
   if (task.priority) data.priority = task.priority.toUpperCase();
+  if (task.plannedDate !== undefined) data.plannedDate = task.plannedDate;
   if (task.projectId) {
     data.project = { connect: { id: task.projectId } };
   }
