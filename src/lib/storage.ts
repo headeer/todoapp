@@ -126,20 +126,25 @@ export async function getProjectTasks(projectId: string): Promise<Task[]> {
 }
 
 export async function saveTask(task: Partial<Task>): Promise<Task> {
+  console.log("Saving task:", JSON.stringify(task, null, 2));
   if (task.id) {
     // Update existing task
+    console.log(`Updating existing task with ID: ${task.id}`);
     const updated = await prisma.task.update({
       where: { id: task.id },
       data: convertToPrismaUpdateTask(task),
       include: { checklistItems: true },
     });
+    console.log("Task updated successfully");
     return convertPrismaTask(updated);
   } else {
     // Create new task
+    console.log("Creating new task");
     const created = await prisma.task.create({
       data: convertToPrismaCreateTask(task),
       include: { checklistItems: true },
     });
+    console.log(`New task created with ID: ${created.id}`);
     return convertPrismaTask(created);
   }
 }
@@ -179,9 +184,17 @@ const defaultTask = {
 };
 
 // Initialize storage with default data
+let storageInitialized = false;
 async function initStorage() {
+  // Only run once
+  if (storageInitialized) return;
+
+  console.log("Checking if storage needs initialization...");
   const projectCount = await prisma.project.count();
+  console.log(`Found ${projectCount} existing projects`);
+
   if (projectCount === 0) {
+    console.log("Initializing storage with default data...");
     const project = await prisma.project.create({
       data: defaultProject,
     });
@@ -192,12 +205,16 @@ async function initStorage() {
         projectId: project.id,
       },
     });
+    console.log("Default data created successfully");
   }
+
+  storageInitialized = true;
 }
 
 // Projects
 export async function getProjects(): Promise<Project[]> {
   await initStorage();
+  console.log("Fetching all projects...");
   const projects = await prisma.project.findMany({
     include: {
       _count: {
@@ -205,6 +222,7 @@ export async function getProjects(): Promise<Project[]> {
       },
     },
   });
+  console.log(`Retrieved ${projects.length} projects`);
 
   return projects.map((p) => ({
     ...p,
