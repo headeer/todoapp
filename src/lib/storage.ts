@@ -198,13 +198,21 @@ async function initStorage() {
 // Projects
 export async function getProjects(): Promise<Project[]> {
   await initStorage();
-  const projects = await prisma.project.findMany();
+  const projects = await prisma.project.findMany({
+    include: {
+      _count: {
+        select: { tasks: true },
+      },
+    },
+  });
+
   return projects.map((p) => ({
     ...p,
     description: p.description || "",
     logo: p.logo || "/default-logo.png",
     createdAt: new Date(p.createdAt),
     updatedAt: new Date(p.updatedAt),
+    taskCount: p._count.tasks,
   }));
 }
 
@@ -212,12 +220,18 @@ export async function getProject(id: string): Promise<Project | null> {
   await initStorage();
   const project = await prisma.project.findUnique({
     where: { id },
+    include: {
+      _count: {
+        select: { tasks: true },
+      },
+    },
   });
   if (!project) return null;
   return {
     ...project,
     description: project.description || "",
     logo: project.logo || "/default-logo.png",
+    taskCount: project._count.tasks,
   };
 }
 

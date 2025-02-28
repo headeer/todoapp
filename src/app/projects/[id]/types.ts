@@ -42,6 +42,7 @@ export interface Project {
   viewed: boolean;
   createdAt: Date;
   updatedAt: Date;
+  taskCount?: number;
 }
 
 export interface TaskData {

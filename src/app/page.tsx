@@ -9,6 +9,17 @@ import StatusIcon from "@/components/StatusIcon";
 import Loader from "@/components/Loader";
 import { Project, Task } from "@/types";
 import { generateId } from "@/utils";
+import { useRouter } from "next/navigation";
+import { PencilIcon } from "@heroicons/react/24/outline";
+
+// Helper function to format dates
+function formatDate(date: Date): string {
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(date);
+}
 
 export default function Home() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -21,6 +32,7 @@ export default function Home() {
     description: "",
     logo: "",
   });
+  const router = useRouter();
 
   useEffect(() => {
     const loadData = async () => {
@@ -137,31 +149,13 @@ export default function Home() {
     }
   };
 
-  const handleEditProject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingProject) return;
-
-    try {
-      const response = await fetch(`/api/projects/${editingProject.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(editingProject),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update project");
-      }
-
-      setProjects(
-        projects.map((p) => (p.id === editingProject.id ? editingProject : p))
-      );
-      setEditingProject(null);
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error("Error updating project:", error);
-    }
+  const handleEditProject = (project: Project) => {
+    setEditingProject({
+      ...project,
+      createdAt: project.createdAt || new Date(),
+      updatedAt: project.updatedAt || new Date(),
+    });
+    setIsModalOpen(true);
   };
 
   const openEditModal = (project: Project, e: React.MouseEvent) => {
@@ -232,108 +226,41 @@ export default function Home() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/20 via-gray-900/10 to-purple-900/20 opacity-50" />
-
-                {project.isMain && (
-                  <div className="project-status">
-                    <div
-                      className="project-main-indicator"
-                      title="Main Project"
-                    />
-                  </div>
-                )}
-
-                <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={(e) => openEditModal(project, e)}
-                    className="p-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300"
-                    title="Edit Project"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={(e) => handleDeleteProject(project.id, e)}
-                    className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300"
-                    title="Delete Project"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </button>
-                </div>
-
-                <div className="flex items-start gap-4 mb-4">
-                  {project.logo ? (
-                    <Image
-                      src={project.logo}
-                      alt={project.name}
-                      width={48}
-                      height={48}
-                      className="rounded-lg object-cover"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-emerald-900 to-emerald-700 flex items-center justify-center">
-                      <span className="text-xl font-bold text-emerald-200">
-                        {project.name.charAt(0)}
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-semibold text-gray-800 dark:text-white">
+                      {project.name}
+                    </h3>
+                    <div className="flex items-center space-x-2">
+                      <span className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                        {project.taskCount || 0} tasks
                       </span>
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <h2 className="project-title">{project.name}</h2>
-                    <p className="project-description">{project.description}</p>
-                  </div>
-                </div>
-
-                <div className="project-card-footer flex-col space-y-3 relative mt-auto">
-                  <div className="grid grid-cols-3 gap-2 w-full">
-                    <div className="status-counter">
-                      <StatusIcon status="TODO" size="sm" />
-                      <span className="text-sm font-medium">
-                        {getTaskCountByStatus(project.id, "TODO")}
-                      </span>
-                    </div>
-                    <div className="status-counter">
-                      <StatusIcon status="IN_PROGRESS" size="sm" />
-                      <span className="text-sm font-medium">
-                        {getTaskCountByStatus(project.id, "IN_PROGRESS")}
-                      </span>
-                    </div>
-                    <div className="status-counter">
-                      <StatusIcon status="DONE" size="sm" />
-                      <span className="text-sm font-medium">
-                        {getTaskCountByStatus(project.id, "DONE")}
-                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditProject(project);
+                        }}
+                        className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setMainProject(project.id);
-                    }}
-                    className={`text-sm font-medium w-full text-center py-2 rounded-lg transition-all ${
-                      project.isMain
-                        ? "bg-gradient-to-r from-red-500/40 to-red-600/40 text-red-300 hover:from-red-500/50 hover:to-red-600/50 shadow-lg shadow-red-900/20"
-                        : "bg-gradient-to-r from-gray-800/20 to-gray-900/20 text-gray-300 hover:from-gray-800/30 hover:to-gray-900/30"
-                    }`}
-                  >
-                    {project.isMain ? "★ Main Project" : "Set as Main"}
-                  </button>
+                  <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-2">
+                    {project.description}
+                  </p>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      {formatDate(project.createdAt)}
+                    </span>
+                  </div>
                 </div>
               </motion.div>
             </Link>

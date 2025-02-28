@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getProjects, saveProject } from "@/lib/storage";
+import prisma from "@/lib/prisma";
 
 interface Project {
   id: string;
@@ -8,21 +9,35 @@ interface Project {
   viewed: boolean;
   isMain: boolean;
   logo: string;
+  createdAt: Date;
+  updatedAt: Date;
+  taskCount?: number;
 }
 
 // GET /api/projects - Get all projects
 export async function GET() {
   try {
-    const projects = await getProjects();
-    return new NextResponse(JSON.stringify(projects), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
+    const projects = await prisma.project.findMany({
+      include: {
+        _count: {
+          select: { tasks: true },
+        },
+      },
     });
+
+    const formattedProjects: Project[] = projects.map((project) => ({
+      ...project,
+      description: project.description || "",
+      logo: project.logo || "/default-logo.png",
+      taskCount: project._count.tasks,
+    }));
+
+    return NextResponse.json(formattedProjects);
   } catch (error) {
     console.error("Error fetching projects:", error);
-    return new NextResponse(
-      JSON.stringify({ error: "Failed to fetch projects" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+    return NextResponse.json(
+      { error: "Failed to fetch projects" },
+      { status: 500 }
     );
   }
 }

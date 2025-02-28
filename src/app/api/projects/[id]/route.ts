@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 import { getProject, saveProject, deleteProject } from "@/lib/storage";
+import prisma from "@/lib/prisma";
 
 // Add route segment config
 export const dynamic = "force-dynamic";
@@ -14,6 +15,9 @@ interface Project {
   viewed: boolean;
   isMain: boolean;
   logo?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  taskCount?: number;
 }
 
 const dataFilePath = path.join(process.cwd(), "data", "projects.json");
@@ -42,6 +46,8 @@ async function initializeProjectsFile() {
         viewed: true,
         isMain: true,
         logo: "",
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       {
         id: "project-2",
@@ -50,6 +56,8 @@ async function initializeProjectsFile() {
         viewed: false,
         isMain: false,
         logo: "",
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       {
         id: "project-3",
@@ -58,6 +66,8 @@ async function initializeProjectsFile() {
         viewed: true,
         isMain: false,
         logo: "",
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
     await fs.writeFile(dataFilePath, JSON.stringify(mockProjects, null, 2));
@@ -65,27 +75,36 @@ async function initializeProjectsFile() {
 }
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const project = await getProject(params.id);
+    const project = await prisma.project.findUnique({
+      where: { id: params.id },
+      include: {
+        _count: {
+          select: { tasks: true },
+        },
+      },
+    });
+
     if (!project) {
-      return new NextResponse(JSON.stringify({ error: "Project not found" }), {
-        status: 404,
-        headers: { "Content-Type": "application/json" },
-      });
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    return new NextResponse(JSON.stringify(project), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    const formattedProject: Project = {
+      ...project,
+      description: project.description || "",
+      logo: project.logo || "/default-logo.png",
+      taskCount: project._count.tasks,
+    };
+
+    return NextResponse.json(formattedProject);
   } catch (error) {
     console.error("Error fetching project:", error);
-    return new NextResponse(
-      JSON.stringify({ error: "Failed to fetch project" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+    return NextResponse.json(
+      { error: "Failed to fetch project" },
+      { status: 500 }
     );
   }
 }

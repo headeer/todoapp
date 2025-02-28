@@ -18,7 +18,10 @@ export interface Project {
   id: string;
   name: string;
   description: string;
-  viewed: boolean;
-  isMain: boolean;
   logo: string;
+  isMain: boolean;
+  viewed: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  taskCount?: number;
 }
