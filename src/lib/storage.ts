@@ -29,8 +29,8 @@ function convertPrismaTask(prismaTask: PrismaTask): Task {
     status: prismaTask.status as TaskStatus,
     priority: prismaTask.priority as TaskPriority,
     projectId: prismaTask.projectId,
-    plannedDate: (prismaTask as any).plannedDate
-      ? new Date((prismaTask as any).plannedDate)
+    plannedDate: prismaTask.plannedDate
+      ? new Date(prismaTask.plannedDate)
       : null,
     checklistItems: prismaTask.checklistItems.map((item: any) => ({
       id: item.id,

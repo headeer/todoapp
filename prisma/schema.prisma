@@ -1,18 +1,12 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  directUrl    = env("DIRECT_URL")
   relationMode = "prisma"
 }
 
@@ -29,27 +23,27 @@ model Project {
 }
 
 model Task {
-  id             String         @id @default(cuid())
+  id             String          @id @default(cuid())
   title          String
   description    String
-  status         String         @default("TODO")
-  priority       String         @default("MEDIUM")
-  project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status         String          @default("TODO")
+  priority       String          @default("MEDIUM")
   projectId      String
-  checklistItems ChecklistItem[]
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
   plannedDate    DateTime?
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  checklistItems ChecklistItem[]
 }
 
 model ChecklistItem {
   id        String   @id @default(cuid())
   title     String
   completed Boolean  @default(false)
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   taskId    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }
 
 enum TaskStatus {

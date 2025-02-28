@@ -10,7 +10,6 @@ import Loader from "@/components/Loader";
 import { Project, Task } from "@/types";
 import { generateId } from "@/utils";
 import { useRouter } from "next/navigation";
-import { PencilIcon } from "@heroicons/react/24/outline";
 
 // Helper function to format dates
 function formatDate(date: Date): string {
@@ -71,6 +70,7 @@ export default function Home() {
 
   const handleCreateProject = async () => {
     const projectId = generateId("project");
+    const now = new Date();
     const project = {
       id: projectId,
       name: newProject.name,
@@ -78,6 +78,9 @@ export default function Home() {
       viewed: true,
       isMain: false,
       logo: newProject.logo,
+      createdAt: now,
+      updatedAt: now,
+      taskCount: 0,
     };
 
     try {
@@ -149,13 +152,31 @@ export default function Home() {
     }
   };
 
-  const handleEditProject = (project: Project) => {
-    setEditingProject({
-      ...project,
-      createdAt: project.createdAt || new Date(),
-      updatedAt: project.updatedAt || new Date(),
-    });
-    setIsModalOpen(true);
+  const handleEditProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProject) return;
+
+    try {
+      const response = await fetch(`/api/projects/${editingProject.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(editingProject),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update project");
+      }
+
+      setProjects(
+        projects.map((p) => (p.id === editingProject.id ? editingProject : p))
+      );
+      setEditingProject(null);
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("Error updating project:", error);
+    }
   };
 
   const openEditModal = (project: Project, e: React.MouseEvent) => {
@@ -238,7 +259,7 @@ export default function Home() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleEditProject(project);
+                          openEditModal(project, e);
                         }}
                         className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                       >
@@ -333,7 +354,8 @@ export default function Home() {
                           className="rounded-lg object-cover"
                         />
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             if (editingProject) {
                               setEditingProject({
                                 ...editingProject,
@@ -481,9 +503,13 @@ export default function Home() {
                   </button>
                   <button
                     className="btn-primary"
-                    onClick={
-                      editingProject ? handleEditProject : handleCreateProject
-                    }
+                    onClick={(e) => {
+                      if (editingProject) {
+                        handleEditProject(e);
+                      } else {
+                        handleCreateProject();
+                      }
+                    }}
                     disabled={
                       editingProject ? !editingProject.name : !newProject.name
                     }
