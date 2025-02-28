@@ -12,12 +12,34 @@ import { generateId } from "@/utils";
 import { useRouter } from "next/navigation";
 
 // Helper function to format dates
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(date);
+function formatDate(dateInput: string | number | Date | undefined | null) {
+  try {
+    // Return empty string if no date provided
+    if (!dateInput) return "";
+
+    // If it's already a Date object
+    if (dateInput instanceof Date) {
+      if (isNaN(dateInput.getTime())) return "";
+      return new Intl.DateTimeFormat("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }).format(dateInput);
+    }
+
+    // Try to create a valid date from the input
+    const date = new Date(dateInput);
+    if (isNaN(date.getTime())) return "";
+
+    return new Intl.DateTimeFormat("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }).format(date);
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return "";
+  }
 }
 
 export default function Home() {

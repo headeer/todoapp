@@ -20,6 +20,20 @@ type PrismaChecklistItem = Prisma.ChecklistItemGetPayload<{
   };
 }>;
 
+// Helper function to safely convert date strings
+function safeDate(dateValue: string | Date | null): Date | null {
+  if (!dateValue) return null;
+  try {
+    const date = new Date(dateValue);
+    // Check if date is valid
+    if (isNaN(date.getTime())) return null;
+    return date;
+  } catch (error) {
+    console.error("Invalid date value:", dateValue);
+    return null;
+  }
+}
+
 // Helper function to convert Prisma Task to our Task type
 function convertPrismaTask(prismaTask: PrismaTask): Task {
   return {
@@ -29,20 +43,18 @@ function convertPrismaTask(prismaTask: PrismaTask): Task {
     status: prismaTask.status as TaskStatus,
     priority: prismaTask.priority as TaskPriority,
     projectId: prismaTask.projectId,
-    plannedDate: prismaTask.plannedDate
-      ? new Date(prismaTask.plannedDate)
-      : null,
+    plannedDate: safeDate(prismaTask.plannedDate),
     checklistItems: prismaTask.checklistItems.map((item: any) => ({
       id: item.id,
       title: item.title,
       text: item.text || item.title,
       completed: item.completed,
       taskId: item.taskId,
-      createdAt: new Date(item.createdAt),
-      updatedAt: new Date(item.updatedAt),
+      createdAt: safeDate(item.createdAt) || new Date(),
+      updatedAt: safeDate(item.updatedAt) || new Date(),
     })),
-    createdAt: new Date(prismaTask.createdAt),
-    updatedAt: new Date(prismaTask.updatedAt),
+    createdAt: safeDate(prismaTask.createdAt) || new Date(),
+    updatedAt: safeDate(prismaTask.updatedAt) || new Date(),
   };
 }
 
@@ -228,8 +240,8 @@ export async function getProjects(): Promise<Project[]> {
     ...p,
     description: p.description || "",
     logo: p.logo || "/default-logo.png",
-    createdAt: new Date(p.createdAt),
-    updatedAt: new Date(p.updatedAt),
+    createdAt: safeDate(p.createdAt) || new Date(),
+    updatedAt: safeDate(p.updatedAt) || new Date(),
     taskCount: p._count.tasks,
   }));
 }
@@ -249,6 +261,8 @@ export async function getProject(id: string): Promise<Project | null> {
     ...project,
     description: project.description || "",
     logo: project.logo || "/default-logo.png",
+    createdAt: safeDate(project.createdAt) || new Date(),
+    updatedAt: safeDate(project.updatedAt) || new Date(),
     taskCount: project._count.tasks,
   };
 }
