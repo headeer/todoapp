@@ -41,16 +41,10 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get("projectId");
 
-    if (!projectId) {
-      return NextResponse.json(
-        { error: "Project ID is required" },
-        { status: 400 }
-      );
-    }
-
+    // If no projectId provided, return all tasks
     const tasks = await withRetry(() =>
       prisma.task.findMany({
-        where: { projectId },
+        where: projectId ? { projectId } : undefined,
         include: { checklistItems: true },
       })
     );
@@ -73,18 +67,30 @@ export async function POST(request: Request) {
     const task = await withRetry(() =>
       prisma.task.create({
         data: {
-          ...body,
-          checklistItems: {
-            create: body.checklistItems,
-          },
+          title: body.title,
+          description: body.description || "",
+          status: body.status || "TODO",
+          priority: body.priority || "MEDIUM",
+          projectId: body.projectId,
+          plannedDate: body.plannedDate ? new Date(body.plannedDate) : null,
+          checklistItems: body.checklistItems
+            ? {
+                create: body.checklistItems.map((item: ChecklistItem) => ({
+                  title: item.text,
+                  completed: item.completed || false,
+                })),
+              }
+            : undefined,
         },
-        include: { checklistItems: true },
+        include: {
+          checklistItems: true,
+        },
       })
     );
 
-    return NextResponse.json(task);
+    return NextResponse.json(task, { status: 201 });
   } catch (error) {
-    console.error("Error creating task:", error);
+    console.error("Failed to create task:", error);
     return NextResponse.json(
       { error: "Failed to create task" },
       { status: 500 }
@@ -142,14 +148,15 @@ export async function PUT(request: Request) {
   }
 }
 
+// DELETE /api/tasks - Delete a task (using query parameter)
 export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
+    const taskId = searchParams.get("id");
 
-    if (!id) {
+    if (!taskId) {
       return NextResponse.json(
-        { error: "Task ID is required" },
+        { error: "Task ID is required as a query parameter" },
         { status: 400 }
       );
     }
@@ -157,12 +164,12 @@ export async function DELETE(request: Request) {
     await withRetry(async () => {
       // First delete checklist items
       await prisma.checklistItem.deleteMany({
-        where: { taskId: id },
+        where: { taskId },
       });
 
       // Then delete the task
       await prisma.task.delete({
-        where: { id },
+        where: { id: taskId },
       });
     });
 

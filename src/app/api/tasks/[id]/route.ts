@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
 import { getTask, saveTask, deleteTask } from "@/lib/storage";
+import { PrismaClient } from "@prisma/client";
+import prisma from "@/lib/prisma";
+
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
+
+const prismaClient = new PrismaClient();
 
 // GET /api/tasks/[id] - Get a specific task
 export async function GET(
@@ -50,22 +57,54 @@ export async function PUT(
   }
 }
 
+async function withRetry<T>(operation: () => Promise<T>): Promise<T> {
+  let lastError;
+  for (let i = 0; i < MAX_RETRIES; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (i < MAX_RETRIES - 1) {
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
+      }
+    }
+  }
+  throw lastError;
+}
+
 // DELETE /api/tasks/[id] - Delete a task
 export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    await deleteTask(params.id);
-    return new NextResponse(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
+    const taskId = params.id;
+
+    if (!taskId) {
+      return NextResponse.json(
+        { error: "Task ID is required" },
+        { status: 400 }
+      );
+    }
+
+    await withRetry(async () => {
+      // First delete checklist items
+      await prisma.checklistItem.deleteMany({
+        where: { taskId },
+      });
+
+      // Then delete the task
+      await prisma.task.delete({
+        where: { id: taskId },
+      });
     });
+
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting task:", error);
-    return new NextResponse(
-      JSON.stringify({ error: "Failed to delete task" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+    return NextResponse.json(
+      { error: "Failed to delete task" },
+      { status: 500 }
     );
   }
 }
