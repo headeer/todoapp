@@ -93,21 +93,13 @@ export default function Home() {
   };
 
   const handleCreateProject = async () => {
-    const projectId = generateId("project");
-    const now = new Date();
-    const project = {
-      id: projectId,
-      name: newProject.name,
-      description: newProject.description,
-      viewed: true,
-      isMain: false,
-      logo: newProject.logo,
-      createdAt: now,
-      updatedAt: now,
-      taskCount: 0,
-    };
-
     try {
+      const project = {
+        name: newProject.name,
+        description: newProject.description || "",
+        logo: newProject.logo || "",
+      };
+
       const response = await fetch("/api/projects", {
         method: "POST",
         headers: {
@@ -120,11 +112,13 @@ export default function Home() {
         throw new Error("Failed to create project");
       }
 
-      setProjects([...projects, project]);
+      const createdProject = await response.json();
+      setProjects([...projects, createdProject]);
       setNewProject({ name: "", description: "", logo: "" });
       setIsModalOpen(false);
     } catch (error) {
       console.error("Error creating project:", error);
+      alert("Failed to create project. Please try again.");
     }
   };
 

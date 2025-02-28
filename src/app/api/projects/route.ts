@@ -45,17 +45,37 @@ export async function GET() {
 // POST /api/projects - Create a new project
 export async function POST(request: Request) {
   try {
-    const project = await request.json();
-    const savedProject = await saveProject(project);
-    return new NextResponse(JSON.stringify(savedProject), {
-      status: 201,
-      headers: { "Content-Type": "application/json" },
+    const projectData = await request.json();
+
+    // Create the project directly with Prisma
+    const savedProject = await prisma.project.create({
+      data: {
+        name: projectData.name,
+        description: projectData.description || "",
+        viewed: false,
+        isMain: false,
+        logo: projectData.logo || "/default-logo.png",
+      },
+      include: {
+        _count: {
+          select: { tasks: true },
+        },
+      },
     });
+
+    const formattedProject = {
+      ...savedProject,
+      description: savedProject.description || "",
+      logo: savedProject.logo || "/default-logo.png",
+      taskCount: savedProject._count.tasks,
+    };
+
+    return NextResponse.json(formattedProject, { status: 201 });
   } catch (error) {
     console.error("Error creating project:", error);
-    return new NextResponse(
-      JSON.stringify({ error: "Failed to create project" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+    return NextResponse.json(
+      { error: "Failed to create project" },
+      { status: 500 }
     );
   }
 }
