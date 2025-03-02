@@ -83,8 +83,8 @@ export function mapChecklistItemDataToChecklistItem(
 ): ChecklistItem {
   return {
     id: itemData.id,
-    title: itemData.title,
-    text: itemData.text,
+    title: itemData.title || "",
+    text: itemData.title || "",
     completed: itemData.completed,
     taskId: itemData.taskId,
     createdAt: new Date(itemData.createdAt),

@@ -22,6 +22,7 @@ async function withRetry<T>(operation: () => Promise<T>): Promise<T> {
 interface ChecklistItem {
   id: string;
   text: string;
+  title: string;
   completed: boolean;
 }
 
@@ -70,13 +71,13 @@ export async function POST(request: Request) {
           title: body.title,
           description: body.description || "",
           status: body.status || "TODO",
-          priority: body.priority || "MEDIUM",
+          priority: (body.priority || "MEDIUM").toUpperCase(),
           projectId: body.projectId,
           plannedDate: body.plannedDate ? new Date(body.plannedDate) : null,
-          checklistItems: body.checklistItems
+          checklistItems: body.checklistItems?.length
             ? {
                 create: body.checklistItems.map((item: ChecklistItem) => ({
-                  title: item.text,
+                  title: item.text || item.title,
                   completed: item.completed || false,
                 })),
               }
@@ -108,30 +109,23 @@ export async function PUT(request: Request) {
       // First, update the task
       const updatedTask = await prisma.task.update({
         where: { id },
-        data: taskData,
+        data: {
+          ...taskData,
+          priority: (taskData.priority || "MEDIUM").toUpperCase(),
+          checklistItems: {
+            deleteMany: {},
+            create: checklistItems?.map((item: any) => ({
+              title: item.text || item.title || "",
+              completed: item.completed || false,
+            })),
+          },
+        },
+        include: {
+          checklistItems: true,
+        },
       });
 
-      // Then, update checklist items
-      if (checklistItems) {
-        // Delete existing checklist items
-        await prisma.checklistItem.deleteMany({
-          where: { taskId: id },
-        });
-
-        // Create new checklist items
-        await prisma.checklistItem.createMany({
-          data: checklistItems.map((item: any) => ({
-            ...item,
-            taskId: id,
-          })),
-        });
-      }
-
-      // Return the updated task with checklist items
-      return prisma.task.findUnique({
-        where: { id },
-        include: { checklistItems: true },
-      });
+      return updatedTask;
     });
 
     if (!task) {

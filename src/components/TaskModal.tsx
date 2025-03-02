@@ -109,11 +109,11 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           </button>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div>
             <label
               htmlFor="title"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-semibold text-gray-700 mb-2"
             >
               Title
             </label>
@@ -122,15 +122,15 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm text-gray-800"
-              placeholder="Task title"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors duration-200 ease-in-out text-gray-800 placeholder-gray-400 hover:border-gray-300"
+              placeholder="Enter task title"
             />
           </div>
 
           <div>
             <label
               htmlFor="description"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-semibold text-gray-700 mb-2"
             >
               Description
             </label>
@@ -139,15 +139,15 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm text-gray-800"
-              placeholder="Task description"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors duration-200 ease-in-out text-gray-800 placeholder-gray-400 hover:border-gray-300 resize-none"
+              placeholder="Enter task description"
             />
           </div>
 
           <div>
             <label
               htmlFor="plannedDate"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-semibold text-gray-700 mb-2"
             >
               Planned Date
             </label>
@@ -156,7 +156,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               id="plannedDate"
               value={plannedDate}
               onChange={(e) => setPlannedDate(e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm text-gray-800"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors duration-200 ease-in-out text-gray-800 hover:border-gray-300"
             />
           </div>
 
@@ -164,7 +164,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             <div>
               <label
                 htmlFor="status"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-semibold text-gray-700 mb-2"
               >
                 Status
               </label>
@@ -172,7 +172,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 id="status"
                 value={status}
                 onChange={(e) => setStatus(e.target.value as TaskStatus)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm text-gray-800"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors duration-200 ease-in-out text-gray-800 hover:border-gray-300 appearance-none cursor-pointer"
               >
                 <option value={TaskStatus.TODO}>To Do</option>
                 <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
@@ -183,7 +183,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             <div>
               <label
                 htmlFor="priority"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-semibold text-gray-700 mb-2"
               >
                 Priority
               </label>
@@ -191,7 +191,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 id="priority"
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as TaskPriority)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm text-gray-800"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors duration-200 ease-in-out text-gray-800 hover:border-gray-300 appearance-none cursor-pointer"
               >
                 <option value={TaskPriority.LOW}>Low</option>
                 <option value={TaskPriority.MEDIUM}>Medium</option>

@@ -105,7 +105,7 @@ function convertToPrismaUpdateTask(
     data.checklistItems = {
       deleteMany: {},
       create: task.checklistItems.map((item) => ({
-        title: item.text || "",
+        title: item.text || item.title || "",
         completed: item.completed || false,
       })),
     };

@@ -336,13 +336,35 @@ export default function Home() {
               </div>
               <Link href={`/projects/${project.id}`} className="block h-full">
                 <div className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-semibold text-gray-800 dark:text-white">
-                      {project.name}
-                    </h3>
-                    <span className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                      {project.taskCount || 0} tasks
-                    </span>
+                  <div className="flex items-center gap-4 mb-4">
+                    {project.logo && project.logo !== "/default-logo.png" ? (
+                      <div className="relative w-12 h-12 flex-shrink-0">
+                        <Image
+                          src={project.logo}
+                          alt={project.name}
+                          fill
+                          className="rounded-lg object-cover"
+                          onError={(e) => {
+                            const img = e.target as HTMLImageElement;
+                            img.src = "/default-logo.png";
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-emerald-900 to-emerald-700 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xl font-bold text-emerald-200">
+                          {project.name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <h3 className="text-xl font-semibold text-gray-800 dark:text-white">
+                        {project.name}
+                      </h3>
+                      <span className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                        {project.taskCount || 0} tasks
+                      </span>
+                    </div>
                   </div>
                   <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-2">
                     {project.description}
