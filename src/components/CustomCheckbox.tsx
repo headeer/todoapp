@@ -4,43 +4,23 @@ import { motion } from "framer-motion";
 
 interface CustomCheckboxProps {
   checked: boolean;
-  onChange: () => void;
-  id?: string;
+  onChange: (checked: boolean) => void;
+  className?: string;
 }
 
-export default function CustomCheckbox({
+const CustomCheckbox: React.FC<CustomCheckboxProps> = ({
   checked,
   onChange,
-  id,
-}: CustomCheckboxProps) {
+  className = "",
+}) => {
   return (
-    <label className="custom-checkbox cursor-pointer" htmlFor={id}>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-        id={id}
-        className="sr-only"
-      />
-      <div className="checkbox-icon">
-        <motion.svg
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{
-            opacity: checked ? 1 : 0,
-            scale: checked ? 1 : 0.5,
-          }}
-          transition={{ duration: 0.2 }}
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <polyline points="20 6 9 17 4 12" />
-        </motion.svg>
-      </div>
-    </label>
+    <input
+      type="checkbox"
+      checked={checked}
+      onChange={(e) => onChange(e.target.checked)}
+      className={`form-checkbox h-5 w-5 text-emerald-500 rounded border-gray-300 focus:ring-emerald-500 ${className}`}
+    />
   );
-}
+};
+
+export default CustomCheckbox;

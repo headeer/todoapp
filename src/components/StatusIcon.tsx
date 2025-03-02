@@ -1,89 +1,56 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { TaskStatus } from "@/app/projects/[id]/types";
 
 interface StatusIconProps {
-  status: "TODO" | "IN_PROGRESS" | "DONE";
+  status: TaskStatus;
   size?: "sm" | "md" | "lg";
+  className?: string;
 }
 
-export default function StatusIcon({ status, size = "md" }: StatusIconProps) {
-  const getSizeClass = () => {
-    switch (size) {
-      case "sm":
-        return "h-4 w-4";
-      case "lg":
-        return "h-6 w-6";
-      default:
-        return "h-5 w-5";
-    }
+const StatusIcon: React.FC<StatusIconProps> = ({
+  status,
+  size = "md",
+  className = "",
+}) => {
+  const sizeClasses = {
+    sm: "w-4 h-4",
+    md: "w-5 h-5",
+    lg: "w-6 h-6",
   };
 
-  const getColorClass = () => {
-    switch (status) {
-      case "TODO":
-        return "text-emerald-400";
-      case "IN_PROGRESS":
-        return "text-amber-400";
-      case "DONE":
-        return "text-emerald-500";
-      default:
-        return "text-gray-400";
-    }
+  const statusClasses = {
+    [TaskStatus.TODO]: "text-gray-400",
+    [TaskStatus.IN_PROGRESS]: "text-blue-500",
+    [TaskStatus.DONE]: "text-green-500",
   };
 
   const renderIcon = () => {
     switch (status) {
-      case "TODO":
+      case TaskStatus.TODO:
         return (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className={`${getSizeClass()} ${getColorClass()}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-            />
-          </svg>
+          <path
+            fillRule="evenodd"
+            d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 2a8 8 0 100 16 8 8 0 000-16z"
+            clipRule="evenodd"
+          />
         );
-      case "IN_PROGRESS":
+      case TaskStatus.IN_PROGRESS:
         return (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className={`${getSizeClass()} ${getColorClass()}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
+          <path
+            fillRule="evenodd"
+            d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 2a8 8 0 100 16 8 8 0 000-16zm1 3v5h4v2h-6V7h2z"
+            clipRule="evenodd"
+          />
         );
-      case "DONE":
+      case TaskStatus.DONE:
         return (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className={`${getSizeClass()} ${getColorClass()}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
+          <path
+            fillRule="evenodd"
+            d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm3.707 7.293a1 1 0 00-1.414 0L11 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4a1 1 0 000-1.414z"
+            clipRule="evenodd"
+          />
         );
       default:
         return null;
@@ -96,7 +63,17 @@ export default function StatusIcon({ status, size = "md" }: StatusIconProps) {
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.2 }}
     >
-      {renderIcon()}
+      <svg
+        data-testid="status-icon"
+        className={`${sizeClasses[size]} ${statusClasses[status]} ${className}`}
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+      >
+        {renderIcon()}
+      </svg>
     </motion.div>
   );
-}
+};
+
+export default StatusIcon;
