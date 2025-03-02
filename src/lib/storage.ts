@@ -269,15 +269,39 @@ export async function getProject(id: string): Promise<Project | null> {
 
 export async function saveProject(project: Project): Promise<Project> {
   await initStorage();
+
+  // Extract only the fields that Prisma expects
+  const { id, taskCount, ...updateData } = project;
+
   const saved = await prisma.project.upsert({
     where: { id: project.id },
-    update: project,
-    create: project,
+    update: {
+      name: updateData.name,
+      description: updateData.description,
+      logo: updateData.logo,
+      isMain: updateData.isMain,
+      viewed: updateData.viewed,
+    },
+    create: {
+      id: project.id,
+      name: updateData.name,
+      description: updateData.description || "",
+      logo: updateData.logo || "/default-logo.png",
+      isMain: updateData.isMain || false,
+      viewed: updateData.viewed || false,
+    },
+    include: {
+      _count: {
+        select: { tasks: true },
+      },
+    },
   });
+
   return {
     ...saved,
     description: saved.description || "",
     logo: saved.logo || "/default-logo.png",
+    taskCount: saved._count.tasks,
   };
 }
 
