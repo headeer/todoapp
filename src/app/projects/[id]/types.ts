@@ -26,7 +26,7 @@ export interface Task {
   description: string;
   status: TaskStatus;
   priority: TaskPriority;
-  projectId: string;
+  projectId: string | null;
   checklistItems: ChecklistItem[];
   plannedDate: Date | null;
   createdAt: Date;
@@ -51,7 +51,7 @@ export interface TaskData {
   description: string | null;
   status: string;
   priority: string;
-  projectId: string;
+  projectId: string | null;
   plannedDate: string | null;
   createdAt: string;
   updatedAt: string;
